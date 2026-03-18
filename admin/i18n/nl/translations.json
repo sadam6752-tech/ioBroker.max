@@ -1,0 +1,14 @@
+{
+    "max": "MAX Messenger Bot",
+    "header_bot": "Bot configuratie",
+    "label_token": "MAX Bot Token",
+    "tooltip_token": "Haal uw token op bij MasterBot in MAX Messenger",
+    "header_access": "Toegangscontrole",
+    "label_allowedUsers": "Toegestane gebruikers-IDs (kommagescheiden)",
+    "tooltip_allowedUsers": "Leeg laten om alle gebruikers toe te staan. Voorbeeld: 123456,789012",
+    "label_sendToAllUsers": "Stuur naar alle bekende gebruikers",
+    "tooltip_sendToAllUsers": "Als ingeschakeld, stuurt message.send zonder userId-prefix naar alle bekende gebruikers",
+    "header_options": "Opties",
+    "label_logUnknownCommands": "Onbekende opdrachten loggen",
+    "tooltip_logUnknownCommands": "Berichten loggen van gebruikers buiten de toegestane lijst"
+}
