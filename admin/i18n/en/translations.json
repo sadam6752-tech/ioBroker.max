@@ -1,0 +1,14 @@
+{
+    "max": "MAX Messenger Bot",
+    "header_bot": "Bot Configuration",
+    "label_token": "MAX Bot Token",
+    "tooltip_token": "Get your token from MasterBot in MAX messenger",
+    "header_access": "Access Control",
+    "label_allowedUsers": "Allowed User IDs (comma-separated)",
+    "tooltip_allowedUsers": "Leave empty to allow all users. Example: 123456,789012",
+    "label_sendToAllUsers": "Send to all known users",
+    "tooltip_sendToAllUsers": "If enabled, message.send without userId prefix sends to all known users",
+    "header_options": "Options",
+    "label_logUnknownCommands": "Log unknown commands",
+    "tooltip_logUnknownCommands": "Log messages from users not in allowed list"
+}

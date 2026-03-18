@@ -1,0 +1,14 @@
+{
+    "max": "MAX 消息机器人",
+    "header_bot": "机器人配置",
+    "label_token": "MAX 机器人令牌",
+    "tooltip_token": "从 MAX Messenger 中的 MasterBot 获取您的令牌",
+    "header_access": "访问控制",
+    "label_allowedUsers": "允许的用户 ID（逗号分隔）",
+    "tooltip_allowedUsers": "留空以允许所有用户。示例：123456,789012",
+    "label_sendToAllUsers": "发送给所有已知用户",
+    "tooltip_sendToAllUsers": "如果启用，没有 userId 前缀的 message.send 将发送给所有已知用户",
+    "header_options": "选项",
+    "label_logUnknownCommands": "记录未知命令",
+    "tooltip_logUnknownCommands": "记录不在允许列表中的用户的消息"
+}

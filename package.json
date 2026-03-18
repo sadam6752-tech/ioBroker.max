@@ -1,0 +1,59 @@
+{
+  "name": "iobroker.max",
+  "version": "0.1.0",
+  "description": "ioBroker adapter for MAX messenger bot integration",
+  "author": {
+    "name": "sadam6752-tech",
+    "email": "sadam6752@gmail.com"
+  },
+  "homepage": "https://github.com/sadam6752-tech/ioBroker.max",
+  "license": "MIT",
+  "keywords": [
+    "ioBroker",
+    "max",
+    "messenger",
+    "chatbot",
+    "notification",
+    "communication"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sadam6752-tech/ioBroker.max.git"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "main": "main.js",
+  "files": [
+    "admin/",
+    "lib/",
+    "io-package.json",
+    "LICENSE",
+    "main.js"
+  ],
+  "scripts": {
+    "test:package": "mocha test/package --exit",
+    "test:integration": "mocha test/integration --exit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "translate": "translate-adapter",
+    "dev": "dev-server watch default",
+    "dev-setup": "dev-server setup default",
+    "dev-upload": "dev-server upload default"
+  },
+  "dependencies": {
+    "@iobroker/adapter-core": "^3.2.3",
+    "@maxhub/max-bot-api": "^0.2.2"
+  },
+  "devDependencies": {
+    "@iobroker/adapter-dev": "^1.5.0",
+    "@iobroker/dev-server": "^0.8.0",
+    "@iobroker/eslint-config": "^2.2.0",
+    "@iobroker/testing": "^5.2.2",
+    "@types/node": "^22.0.0"
+  },
+  "bugs": {
+    "url": "https://github.com/sadam6752-tech/ioBroker.max/issues"
+  },
+  "readmeFilename": "README.md"
+}

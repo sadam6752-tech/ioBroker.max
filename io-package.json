@@ -1,0 +1,163 @@
+{
+  "common": {
+    "name": "max",
+    "version": "0.1.0",
+    "titleLang": {
+      "en": "MAX Messenger Bot",
+      "de": "MAX Messenger Bot",
+      "ru": "MAX Мессенджер Бот",
+      "fr": "MAX Messenger Bot",
+      "it": "MAX Messenger Bot",
+      "es": "MAX Messenger Bot",
+      "pl": "MAX Messenger Bot",
+      "pt": "MAX Messenger Bot",
+      "nl": "MAX Messenger Bot",
+      "uk": "MAX Месенджер Бот",
+      "zh-cn": "MAX 消息机器人"
+    },
+    "desc": {
+      "en": "Send and receive messages via MAX messenger bot",
+      "de": "Nachrichten über MAX Messenger Bot senden und empfangen",
+      "ru": "Отправка и получение сообщений через бота мессенджера MAX",
+      "fr": "Envoyer et recevoir des messages via le bot MAX Messenger",
+      "it": "Invia e ricevi messaggi tramite il bot MAX Messenger",
+      "es": "Enviar y recibir mensajes a través del bot MAX Messenger",
+      "pl": "Wysyłaj i odbieraj wiadomości przez bota MAX Messenger",
+      "pt": "Enviar e receber mensagens através do bot MAX Messenger",
+      "nl": "Berichten verzenden en ontvangen via MAX Messenger bot",
+      "uk": "Надсилання та отримання повідомлень через бота MAX Messenger",
+      "zh-cn": "通过 MAX Messenger 机器人发送和接收消息"
+    },
+    "news": {
+      "0.1.0": {
+        "en": "Initial release: MAX messenger bot integration for ioBroker",
+        "de": "Erstveröffentlichung: MAX Messenger Bot Integration für ioBroker",
+        "ru": "Первый релиз: интеграция бота мессенджера MAX для ioBroker",
+        "fr": "Version initiale: intégration du bot MAX Messenger pour ioBroker",
+        "it": "Versione iniziale: integrazione bot MAX Messenger per ioBroker",
+        "es": "Versión inicial: integración del bot MAX Messenger para ioBroker",
+        "pl": "Pierwsze wydanie: integracja bota MAX Messenger dla ioBroker",
+        "pt": "Versão inicial: integração do bot MAX Messenger para ioBroker",
+        "nl": "Eerste release: MAX Messenger bot integratie voor ioBroker",
+        "uk": "Перший реліз: інтеграція бота MAX Messenger для ioBroker",
+        "zh-cn": "初始版本：ioBroker 的 MAX Messenger 机器人集成"
+      }
+    },
+    "authors": [
+      "sadam6752-tech <sadam6752@gmail.com>"
+    ],
+    "keywords": [
+      "max",
+      "messenger",
+      "chatbot",
+      "notification",
+      "communication"
+    ],
+    "licenseInformation": {
+      "license": "MIT",
+      "type": "free"
+    },
+    "platform": "Javascript/Node.js",
+    "icon": "max.png",
+    "extIcon": "https://raw.githubusercontent.com/sadam6752-tech/ioBroker.max/main/admin/max.png",
+    "readme": "https://github.com/sadam6752-tech/ioBroker.max/blob/main/README.md",
+    "loglevel": "info",
+    "mode": "daemon",
+    "type": "messaging",
+    "compact": true,
+    "enabled": true,
+    "connectionType": "cloud",
+    "dataSource": "push",
+    "adminUI": {
+      "config": "json"
+    },
+    "dependencies": [
+      {
+        "js-controller": ">=6.0.11"
+      }
+    ],
+    "globalDependencies": [
+      {
+        "admin": ">=7.6.20"
+      }
+    ],
+    "tier": 2
+  },
+  "native": {
+    "token": "",
+    "allowedUsers": "",
+    "sendToAllUsers": false,
+    "logUnknownCommands": true
+  },
+  "objects": [],
+  "instanceObjects": [
+    {
+      "_id": "info",
+      "type": "channel",
+      "common": {
+        "name": "Information"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.connection",
+      "type": "state",
+      "common": {
+        "name": "Connected to MAX API",
+        "type": "boolean",
+        "role": "indicator.connected",
+        "read": true,
+        "write": false,
+        "def": false
+      },
+      "native": {}
+    },
+    {
+      "_id": "message",
+      "type": "channel",
+      "common": {
+        "name": "Messages"
+      },
+      "native": {}
+    },
+    {
+      "_id": "message.send",
+      "type": "state",
+      "common": {
+        "name": "Send message (format: userId|text or JSON)",
+        "type": "string",
+        "role": "text",
+        "read": false,
+        "write": true,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "message.received",
+      "type": "state",
+      "common": {
+        "name": "Last received message",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "message.userId",
+      "type": "state",
+      "common": {
+        "name": "User ID of last message sender",
+        "type": "number",
+        "role": "value",
+        "read": true,
+        "write": false,
+        "def": 0
+      },
+      "native": {}
+    }
+  ]
+}

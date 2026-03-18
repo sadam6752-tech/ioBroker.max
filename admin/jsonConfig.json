@@ -1,0 +1,78 @@
+{
+  "i18n": true,
+  "type": "panel",
+  "items": {
+    "_header_bot": {
+      "type": "header",
+      "text": "header_bot",
+      "size": 2,
+      "xs": 12,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12
+    },
+    "token": {
+      "type": "text",
+      "label": "label_token",
+      "xs": 12,
+      "sm": 12,
+      "md": 8,
+      "lg": 6,
+      "xl": 6,
+      "tooltip": "tooltip_token"
+    },
+    "_header_access": {
+      "type": "header",
+      "text": "header_access",
+      "size": 2,
+      "xs": 12,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12
+    },
+    "allowedUsers": {
+      "type": "text",
+      "label": "label_allowedUsers",
+      "xs": 12,
+      "sm": 8,
+      "md": 8,
+      "lg": 6,
+      "xl": 6,
+      "tooltip": "tooltip_allowedUsers"
+    },
+    "sendToAllUsers": {
+      "type": "checkbox",
+      "label": "label_sendToAllUsers",
+      "xs": 12,
+      "sm": 4,
+      "md": 4,
+      "lg": 3,
+      "xl": 3,
+      "default": false,
+      "tooltip": "tooltip_sendToAllUsers"
+    },
+    "_header_options": {
+      "type": "header",
+      "text": "header_options",
+      "size": 2,
+      "xs": 12,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12
+    },
+    "logUnknownCommands": {
+      "type": "checkbox",
+      "label": "label_logUnknownCommands",
+      "xs": 12,
+      "sm": 6,
+      "md": 6,
+      "lg": 4,
+      "xl": 4,
+      "default": true,
+      "tooltip": "tooltip_logUnknownCommands"
+    }
+  }
+}

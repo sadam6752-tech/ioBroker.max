@@ -1,0 +1,14 @@
+{
+    "max": "MAX Мессенджер Бот",
+    "header_bot": "Настройка бота",
+    "label_token": "Токен бота MAX",
+    "tooltip_token": "Получите токен через MasterBot в мессенджере MAX",
+    "header_access": "Управление доступом",
+    "label_allowedUsers": "Разрешённые ID пользователей (через запятую)",
+    "tooltip_allowedUsers": "Оставьте пустым для разрешения всех пользователей. Пример: 123456,789012",
+    "label_sendToAllUsers": "Отправлять всем известным пользователям",
+    "tooltip_sendToAllUsers": "Если включено, message.send без префикса userId отправляет всем известным пользователям",
+    "header_options": "Параметры",
+    "label_logUnknownCommands": "Логировать неизвестные команды",
+    "tooltip_logUnknownCommands": "Логировать сообщения от пользователей не из списка разрешённых"
+}
