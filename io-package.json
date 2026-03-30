@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "max",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "titleLang": {
       "en": "MAX Messenger Bot",
       "de": "MAX Messenger Bot",
@@ -29,6 +29,19 @@
       "zh-cn": "通过 MAX Messenger 机器人发送和接收消息"
     },
     "news": {
+      "0.1.1": {
+        "en": "Add CI/CD workflow, dependabot, release-script; fix async unload; fix object hierarchy; fix JSDoc",
+        "de": "CI/CD Workflow, Dependabot, Release-Script hinzugefuegt; async unload korrigiert; Objekthierarchie korrigiert; JSDoc korrigiert",
+        "ru": "Добавлены CI/CD workflow, dependabot, release-script; исправлен async unload; иерархия объектов; JSDoc",
+        "fr": "Ajout CI/CD workflow, dependabot, release-script; correction unload async; hierarchie objets; JSDoc",
+        "it": "Aggiunto CI/CD workflow, dependabot, release-script; corretto unload async; gerarchia oggetti; JSDoc",
+        "es": "Anadido CI/CD workflow, dependabot, release-script; corregido unload async; jerarquia objetos; JSDoc",
+        "pl": "Dodano CI/CD workflow, dependabot, release-script; poprawiono async unload; hierarchia obiektow; JSDoc",
+        "pt": "Adicionado CI/CD workflow, dependabot, release-script; corrigido unload async; hierarquia objetos; JSDoc",
+        "nl": "CI/CD workflow, dependabot, release-script toegevoegd; async unload gecorrigeerd; objecthierarchie; JSDoc",
+        "uk": "Додано CI/CD workflow, dependabot, release-script; виправлено async unload; ієрархія об'єктів; JSDoc",
+        "zh-cn": "添加CI/CD工作流、dependabot、release-script；修复async unload；对象层次结构；JSDoc"
+      },
       "0.1.0": {
         "en": "Initial release: MAX messenger bot integration for ioBroker",
         "de": "Erstveröffentlichung: MAX Messenger Bot Integration für ioBroker",
