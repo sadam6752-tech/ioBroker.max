@@ -1,0 +1,7 @@
+{
+  "plugins": {
+    "iobroker": true,
+    "license": true,
+    "manual-review": true
+  }
+}

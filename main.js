@@ -10,7 +10,7 @@ const BotManager = require("./lib/bot-manager");
 
 class MaxAdapter extends utils.Adapter {
   /**
-   * @param {Partial<utils.AdapterOptions>} [options]
+   * @param {Partial<utils.AdapterOptions>} [options] - Adapter options
    */
   constructor(options = {}) {
     super({
@@ -120,8 +120,8 @@ class MaxAdapter extends utils.Adapter {
   }
 
   /**
-   * @param {string} id
-   * @param {ioBroker.State | null | undefined} state
+   * @param {string} id - State ID
+   * @param {ioBroker.State | null | undefined} state - New state value
    */
   async onStateChange(id, state) {
     if (!state || state.ack) {
@@ -153,7 +153,7 @@ class MaxAdapter extends utils.Adapter {
   }
 
   /**
-   * @param {ioBroker.Message} obj
+   * @param {ioBroker.Message} obj - Message object
    */
   async onMessage(obj) {
     if (!obj || obj.command !== "send") {
@@ -180,14 +180,15 @@ class MaxAdapter extends utils.Adapter {
   }
 
   /**
-   * @param {() => void} callback
+   * @param {() => void} callback - Unload callback
    */
-  onUnload(callback) {
+  async onUnload(callback) {
     try {
       if (this.botManager) {
-        this.botManager.stop();
+        await this.botManager.stop();
+        this.botManager = null;
       }
-      this.setState("info.connection", false, true);
+      await this.setStateAsync("info.connection", false, true);
     } catch {
       // ignore
     } finally {
@@ -198,8 +199,8 @@ class MaxAdapter extends utils.Adapter {
   /**
    * Send message to a specific user
    *
-   * @param {string} userId
-   * @param {string} text
+   * @param {string} userId - User ID to send message to
+   * @param {string} text - Message text
    */
   async _sendMessage(userId, text) {
     if (!this.botManager) {
@@ -217,7 +218,7 @@ class MaxAdapter extends utils.Adapter {
   /**
    * Send message to all known users
    *
-   * @param {string} text
+   * @param {string} text - Message text to send to all users
    */
   async _sendToAll(text) {
     if (!this.botManager) {
@@ -235,11 +236,17 @@ class MaxAdapter extends utils.Adapter {
   /**
    * Create or update user states dynamically
    *
-   * @param {string|number} userId
-   * @param {string} username
+   * @param {string|number} userId - User ID
+   * @param {string} username - Username or display name
    */
   async ensureUserObjects(userId, username) {
     const uid = String(userId);
+    // Ensure parent 'users' channel exists
+    await this.extendObject("users", {
+      type: "channel",
+      common: { name: "Users" },
+      native: {},
+    });
     await this.extendObject(`users.${uid}`, {
       type: "channel",
       common: { name: username || `User ${uid}` },
@@ -299,7 +306,7 @@ class MaxAdapter extends utils.Adapter {
 
 if (require.main !== module) {
   /**
-   * @param {Partial<utils.AdapterOptions>} [options]
+   * @param {Partial<utils.AdapterOptions>} [options] - Adapter options
    */
   module.exports = (options) => new MaxAdapter(options);
 } else {
