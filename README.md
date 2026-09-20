@@ -57,8 +57,19 @@ Each user gets their own channel under `max.0.users.<userId>`:
 - `send` — write here to send directly to this user
 - `callback_data` — last button callback payload
 - `username` — display name
+- `started` — `true` once the user pressed "Start" in the bot
+
+Known users are restored from the object tree after an adapter restart, so
+broadcasts keep working without waiting for every user to write again.
 
 ## Changelog
+
+### 0.1.2 (2026-09-20)
+- (sadam6752-tech) Honor the `sendToAllUsers` setting: broadcasts are only sent when it is enabled
+- (sadam6752-tech) Apply the allowed-users filter to all incoming events (`bot_started`, `message_created`, `message_callback`)
+- (sadam6752-tech) Reload known users on adapter restart so broadcasts keep working
+- (sadam6752-tech) Use `setStateAsync`/`extendObjectAsync`/`subscribeStatesAsync` consistently
+- (sadam6752-tech) Add CI workflow, dependabot config, `tsconfig.json` and VSCode JSON schemas
 
 ### 0.1.1 (2026-03-30)
 - (sadam6752-tech) Add CI/CD workflow, dependabot, release-script

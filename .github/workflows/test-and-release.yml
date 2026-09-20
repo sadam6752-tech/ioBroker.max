@@ -18,9 +18,9 @@ jobs:
     if: contains(github.event.head_commit.message, '[skip ci]') == false
     runs-on: ubuntu-latest
     steps:
-      - uses: ioBroker/testing-action-check@v1
+      - uses: ioBroker/testing-action-check@v2
         with:
-          node-version: '20.x'
+          node-version: '24.x'
           lint: true
 
   adapter-tests:
@@ -29,7 +29,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node-version: [20.x, 22.x, 24.x]
+        node-version: [22.x, 24.x]
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: ioBroker/testing-action-adapter@v1
@@ -37,8 +37,21 @@ jobs:
           node-version: ${{ matrix.node-version }}
           os: ${{ matrix.os }}
 
-# NOTE: Automatic npm deployment is intentionally disabled.
-# Releases to npm are published manually (npm publish).
-# To re-enable automatic releases, create an npm token, add it as the
-# GitHub secret NPM_TOKEN and restore a deploy job that uses
-# ioBroker/testing-action-deploy@v1 with npm-token: ${{ secrets.NPM_TOKEN }}.
+  deploy:
+    needs: [check-and-lint, adapter-tests]
+    if: |
+      contains(github.event.head_commit.message, '[skip ci]') == false &&
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      # Required for npm Trusted Publishing (OIDC) and provenance attestation
+      id-token: write
+      contents: write
+    steps:
+      - uses: ioBroker/testing-action-deploy@v1
+        with:
+          node-version: '24.x'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # NOTE: No npm-token on purpose. Providing a token would make the
+          # action use classic auth instead of OIDC/Trusted Publishing.

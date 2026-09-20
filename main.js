@@ -34,15 +34,15 @@ class MaxAdapter extends utils.Adapter {
   async onReady() {
     this.log.debug("onReady executing...");
 
-    await this.setState("info.connection", false, true);
+    await this.setStateAsync("info.connection", false, true);
 
-    // Create instance objects
-    await this.extendObject("info", {
+    // Create instance objects (idempotent via extendObjectAsync)
+    await this.extendObjectAsync("info", {
       type: "channel",
       common: { name: "Information" },
       native: {},
     });
-    await this.extendObject("info.connection", {
+    await this.extendObjectAsync("info.connection", {
       type: "state",
       common: {
         name: "Connected to MAX API",
@@ -54,15 +54,15 @@ class MaxAdapter extends utils.Adapter {
       },
       native: {},
     });
-    await this.extendObject("message", {
+    await this.extendObjectAsync("message", {
       type: "channel",
       common: { name: "Messages" },
       native: {},
     });
-    await this.extendObject("message.send", {
+    await this.extendObjectAsync("message.send", {
       type: "state",
       common: {
-        name: "Send message (format: userId|text or JSON)",
+        name: "Send message (format: userId|text, or plain text to all users)",
         type: "string",
         role: "text",
         read: false,
@@ -71,7 +71,7 @@ class MaxAdapter extends utils.Adapter {
       },
       native: {},
     });
-    await this.extendObject("message.received", {
+    await this.extendObjectAsync("message.received", {
       type: "state",
       common: {
         name: "Last received message",
@@ -83,7 +83,7 @@ class MaxAdapter extends utils.Adapter {
       },
       native: {},
     });
-    await this.extendObject("message.userId", {
+    await this.extendObjectAsync("message.userId", {
       type: "state",
       common: {
         name: "User ID of last message sender",
@@ -95,9 +95,14 @@ class MaxAdapter extends utils.Adapter {
       },
       native: {},
     });
+    await this.extendObjectAsync("users", {
+      type: "channel",
+      common: { name: "Users" },
+      native: {},
+    });
 
-    this.subscribeStates("message.send");
-    this.subscribeStates("users.*.send");
+    await this.subscribeStatesAsync("message.send");
+    await this.subscribeStatesAsync("users.*.send");
 
     // Validate token
     if (!this.config.token) {
@@ -111,11 +116,11 @@ class MaxAdapter extends utils.Adapter {
     this.botManager = new BotManager(this);
     try {
       await this.botManager.start(this.config.token);
-      await this.setState("info.connection", true, true);
+      await this.setStateAsync("info.connection", true, true);
       this.log.info("MAX adapter ready and connected");
     } catch (e) {
       this.log.error(`Failed to start MAX bot: ${e.message}`);
-      await this.setState("info.connection", false, true);
+      await this.setStateAsync("info.connection", false, true);
     }
   }
 
@@ -130,7 +135,10 @@ class MaxAdapter extends utils.Adapter {
 
     // message.send — format: "userId|text" or plain text (send to all)
     if (id === `${this.namespace}.message.send` && state.val) {
-      const val = String(state.val);
+      const val = String(state.val).trim();
+      if (val === "") {
+        return;
+      }
       const pipeIdx = val.indexOf("|");
       if (pipeIdx > 0) {
         const userId = val.substring(0, pipeIdx).trim();
@@ -144,10 +152,13 @@ class MaxAdapter extends utils.Adapter {
     }
 
     // users.<id>.send — direct send to specific user
-    const userSendMatch = id.match(/^[^.]+\.[^.]+\.users\.(\d+)\.send$/);
+    const userSendMatch = id.match(/^[^.]+\.[^.]+\.users\.([^.]+)\.send$/);
     if (userSendMatch && state.val) {
       const userId = userSendMatch[1];
-      await this._sendMessage(userId, String(state.val));
+      const text = String(state.val).trim();
+      if (text !== "") {
+        await this._sendMessage(userId, text);
+      }
       await this.setStateAsync(`users.${userId}.send`, "", true);
     }
   }
@@ -225,6 +236,13 @@ class MaxAdapter extends utils.Adapter {
       this.log.warn("Bot not initialized, cannot send message");
       return;
     }
+    if (!this.config.sendToAllUsers) {
+      this.log.warn(
+        "Received a broadcast message but 'sendToAllUsers' is disabled. " +
+          "Enable it in the adapter settings or use the format 'userId|text'.",
+      );
+      return;
+    }
     try {
       await this.botManager.sendToAll(text);
       this.log.debug("Message sent to all users");
@@ -242,17 +260,17 @@ class MaxAdapter extends utils.Adapter {
   async ensureUserObjects(userId, username) {
     const uid = String(userId);
     // Ensure parent 'users' channel exists
-    await this.extendObject("users", {
+    await this.extendObjectAsync("users", {
       type: "channel",
       common: { name: "Users" },
       native: {},
     });
-    await this.extendObject(`users.${uid}`, {
+    await this.extendObjectAsync(`users.${uid}`, {
       type: "channel",
       common: { name: username || `User ${uid}` },
       native: {},
     });
-    await this.extendObject(`users.${uid}.last_message`, {
+    await this.extendObjectAsync(`users.${uid}.last_message`, {
       type: "state",
       common: {
         name: "Last message",
@@ -264,7 +282,7 @@ class MaxAdapter extends utils.Adapter {
       },
       native: {},
     });
-    await this.extendObject(`users.${uid}.send`, {
+    await this.extendObjectAsync(`users.${uid}.send`, {
       type: "state",
       common: {
         name: "Send message",
@@ -276,7 +294,7 @@ class MaxAdapter extends utils.Adapter {
       },
       native: {},
     });
-    await this.extendObject(`users.${uid}.callback_data`, {
+    await this.extendObjectAsync(`users.${uid}.callback_data`, {
       type: "state",
       common: {
         name: "Callback data",
@@ -288,7 +306,7 @@ class MaxAdapter extends utils.Adapter {
       },
       native: {},
     });
-    await this.extendObject(`users.${uid}.username`, {
+    await this.extendObjectAsync(`users.${uid}.username`, {
       type: "state",
       common: {
         name: "Username",
@@ -300,7 +318,19 @@ class MaxAdapter extends utils.Adapter {
       },
       native: {},
     });
-    this.subscribeStates(`users.${uid}.send`);
+    await this.extendObjectAsync(`users.${uid}.started`, {
+      type: "state",
+      common: {
+        name: "Bot started by this user",
+        type: "boolean",
+        role: "indicator",
+        read: true,
+        write: false,
+        def: false,
+      },
+      native: {},
+    });
+    await this.subscribeStatesAsync(`users.${uid}.send`);
   }
 }
 

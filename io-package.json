@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "max",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "titleLang": {
       "en": "MAX Messenger Bot",
       "de": "MAX Messenger Bot",
@@ -29,6 +29,19 @@
       "zh-cn": "通过 MAX Messenger 机器人发送和接收消息"
     },
     "news": {
+      "0.1.2": {
+        "en": "Honor sendToAllUsers setting, block unknown users on all events, reload known users after restart, add CI workflow, dependabot, tsconfig and VSCode schemas",
+        "de": "sendToAllUsers-Einstellung wird beruecksichtigt, unbekannte Nutzer bei allen Events blockiert, bekannte Nutzer nach Neustart neu geladen, CI-Workflow, Dependabot, tsconfig und VSCode-Schemas hinzugefuegt",
+        "ru": "Учитывается настройка sendToAllUsers, блокировка неизвестных пользователей во всех событиях, перезагрузка известных пользователей после перезапуска, добавлены CI workflow, dependabot, tsconfig и схемы VSCode",
+        "fr": "Prise en compte du reglage sendToAllUsers, blocage des utilisateurs inconnus sur tous les evenements, rechargement des utilisateurs connus apres redemarrage, ajout CI workflow, dependabot, tsconfig et schemas VSCode",
+        "it": "Rispetto dell'impostazione sendToAllUsers, blocco degli utenti sconosciuti su tutti gli eventi, ricaricamento degli utenti noti dopo il riavvio, aggiunti CI workflow, dependabot, tsconfig e schemi VSCode",
+        "es": "Se respeta el ajuste sendToAllUsers, bloqueo de usuarios desconocidos en todos los eventos, recarga de usuarios conocidos tras reinicio, anadidos CI workflow, dependabot, tsconfig y esquemas VSCode",
+        "pl": "Uwzgledniono ustawienie sendToAllUsers, blokowanie nieznanych uzytkownikow we wszystkich zdarzeniach, ponowne ladowanie znanych uzytkownikow po restarcie, dodano CI workflow, dependabot, tsconfig i schematy VSCode",
+        "pt": "Respeita a configuracao sendToAllUsers, bloqueio de usuarios desconhecidos em todos os eventos, recarregamento de usuarios conhecidos apos reinicio, adicionados CI workflow, dependabot, tsconfig e esquemas VSCode",
+        "nl": "sendToAllUsers-instelling wordt gerespecteerd, onbekende gebruikers bij alle events geblokkeerd, bekende gebruikers na herstart opnieuw geladen, CI-workflow, dependabot, tsconfig en VSCode-schema's toegevoegd",
+        "uk": "Враховується налаштування sendToAllUsers, блокування невідомих користувачів у всіх подіях, перезавантаження відомих користувачів після перезапуску, додано CI workflow, dependabot, tsconfig та схеми VSCode",
+        "zh-cn": "遵循 sendToAllUsers 设置，在所有事件中阻止未知用户，重启后重新加载已知用户，添加 CI 工作流、dependabot、tsconfig 和 VSCode 架构"
+      },
       "0.1.1": {
         "en": "Add CI/CD workflow, dependabot, release-script; fix async unload; fix object hierarchy; fix JSDoc",
         "de": "CI/CD Workflow, Dependabot, Release-Script hinzugefuegt; async unload korrigiert; Objekthierarchie korrigiert; JSDoc korrigiert",

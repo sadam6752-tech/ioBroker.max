@@ -15,3 +15,8 @@ jobs:
       - uses: fastify/github-action-merge-dependabot@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          merge-method: squash
+          # Never auto-merge runtime major bumps (e.g. @maxhub/max-bot-api),
+          # only patch-level production updates and minor devDependency updates.
+          target-development: minor
+          target-production: patch
