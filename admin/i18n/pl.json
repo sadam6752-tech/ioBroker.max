@@ -1,0 +1,14 @@
+{
+    "header_access": "Kontrola dostępu",
+    "header_bot": "Konfiguracja bota",
+    "header_options": "Opcje",
+    "label_allowedUsers": "Dozwolone ID użytkowników (oddzielone przecinkiem)",
+    "label_logUnknownCommands": "Rejestruj nieznane polecenia",
+    "label_sendToAllUsers": "Wyślij do wszystkich znanych użytkowników",
+    "label_token": "Token bota MAX",
+    "max": "MAX Messenger Bot",
+    "tooltip_allowedUsers": "Pozostaw puste aby zezwolić wszystkim użytkownikom. Przykład: 123456,789012",
+    "tooltip_logUnknownCommands": "Rejestruj wiadomości od użytkowników spoza listy dozwolonych",
+    "tooltip_sendToAllUsers": "Jeśli włączone, message.send bez prefiksu userId wysyła do wszystkich znanych użytkowników",
+    "tooltip_token": "Uzyskaj token od MasterBot w MAX Messenger"
+}

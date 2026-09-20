@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "max",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "titleLang": {
       "en": "MAX Messenger Bot",
       "de": "MAX Messenger Bot",
@@ -29,18 +29,18 @@
       "zh-cn": "通过 MAX Messenger 机器人发送和接收消息"
     },
     "news": {
-      "0.1.2": {
-        "en": "Honor sendToAllUsers setting, block unknown users on all events, reload known users after restart, add CI workflow, dependabot, tsconfig and VSCode schemas",
-        "de": "sendToAllUsers-Einstellung wird beruecksichtigt, unbekannte Nutzer bei allen Events blockiert, bekannte Nutzer nach Neustart neu geladen, CI-Workflow, Dependabot, tsconfig und VSCode-Schemas hinzugefuegt",
-        "ru": "Учитывается настройка sendToAllUsers, блокировка неизвестных пользователей во всех событиях, перезагрузка известных пользователей после перезапуска, добавлены CI workflow, dependabot, tsconfig и схемы VSCode",
-        "fr": "Prise en compte du reglage sendToAllUsers, blocage des utilisateurs inconnus sur tous les evenements, rechargement des utilisateurs connus apres redemarrage, ajout CI workflow, dependabot, tsconfig et schemas VSCode",
-        "it": "Rispetto dell'impostazione sendToAllUsers, blocco degli utenti sconosciuti su tutti gli eventi, ricaricamento degli utenti noti dopo il riavvio, aggiunti CI workflow, dependabot, tsconfig e schemi VSCode",
-        "es": "Se respeta el ajuste sendToAllUsers, bloqueo de usuarios desconocidos en todos los eventos, recarga de usuarios conocidos tras reinicio, anadidos CI workflow, dependabot, tsconfig y esquemas VSCode",
-        "pl": "Uwzgledniono ustawienie sendToAllUsers, blokowanie nieznanych uzytkownikow we wszystkich zdarzeniach, ponowne ladowanie znanych uzytkownikow po restarcie, dodano CI workflow, dependabot, tsconfig i schematy VSCode",
-        "pt": "Respeita a configuracao sendToAllUsers, bloqueio de usuarios desconhecidos em todos os eventos, recarregamento de usuarios conhecidos apos reinicio, adicionados CI workflow, dependabot, tsconfig e esquemas VSCode",
-        "nl": "sendToAllUsers-instelling wordt gerespecteerd, onbekende gebruikers bij alle events geblokkeerd, bekende gebruikers na herstart opnieuw geladen, CI-workflow, dependabot, tsconfig en VSCode-schema's toegevoegd",
-        "uk": "Враховується налаштування sendToAllUsers, блокування невідомих користувачів у всіх подіях, перезавантаження відомих користувачів після перезапуску, додано CI workflow, dependabot, tsconfig та схеми VSCode",
-        "zh-cn": "遵循 sendToAllUsers 设置，在所有事件中阻止未知用户，重启后重新加载已知用户，添加 CI 工作流、dependabot、tsconfig 和 VSCode 架构"
+      "0.1.3": {
+        "en": "Repository checker cleanup: bot token is stored as a protected and encrypted native field, .releaseconfig.json uses the plugin array format, VSCode JSON schemas and prettier config added, obsolete devDependencies removed, release-script updated, Node.js 26 added to the CI matrix. README: direct npm install instructions removed, license and copyright section added. Version 0.1.2 was never published to npm - its changes are included in 0.1.3. Re-enter the bot token once if the adapter cannot connect after the update.",
+        "de": "Aufraeumen fuer den Repository-Checker: Bot-Token wird als geschuetztes und verschluesseltes natives Feld gespeichert, .releaseconfig.json nutzt das Plugin-Array-Format, VSCode-JSON-Schemas und prettier-Konfiguration ergaenzt, veraltete devDependencies entfernt, release-script aktualisiert, Node.js 26 in der CI-Matrix ergaenzt. README: direkte npm-Installationsanleitung entfernt, Lizenz- und Copyright-Abschnitt ergaenzt. Version 0.1.2 wurde nie auf npm veroeffentlicht - ihre Aenderungen sind in 0.1.3 enthalten. Bot-Token einmal neu eingeben, falls der Adapter nach dem Update keine Verbindung aufbaut.",
+        "ru": "Чистка для repository checker: токен бота хранится как защищённое и зашифрованное нативное поле, .releaseconfig.json использует формат массива плагинов, добавлены схемы VSCode и конфигурация prettier, удалены устаревшие devDependencies, обновлён release-script, в CI-матрицу добавлен Node.js 26. README: убрана инструкция установки через npm, добавлен раздел лицензии и копирайта. Версия 0.1.2 не была опубликована на npm - её изменения вошли в 0.1.3. Введите токен бота заново, если после обновления адаптер не подключается.",
+        "fr": "Nettoyage pour le repository checker : le token du bot est stocke comme champ natif protege et chiffre, .releaseconfig.json utilise le format tableau de plugins, schemas JSON VSCode et configuration prettier ajoutes, devDependencies obsoletes supprimees, release-script mis a jour, Node.js 26 ajoute a la matrice CI. README : instructions d'installation npm supprimees, section licence et copyright ajoutee. La version 0.1.2 n'a jamais ete publiee sur npm - ses modifications sont incluses dans 0.1.3. Saisissez a nouveau le token du bot si l'adaptateur ne se connecte pas apres la mise a jour.",
+        "it": "Pulizia per il repository checker: il token del bot e memorizzato come campo nativo protetto e cifrato, .releaseconfig.json usa il formato ad array dei plugin, aggiunti schemi JSON VSCode e configurazione prettier, rimossi devDependencies obsoleti, release-script aggiornato, Node.js 26 aggiunto alla matrice CI. README: rimosse le istruzioni di installazione npm, aggiunta la sezione licenza e copyright. La versione 0.1.2 non e mai stata pubblicata su npm - le sue modifiche sono incluse nella 0.1.3. Reinserire il token del bot se l'adattatore non si connette dopo l'aggiornamento.",
+        "es": "Limpieza para el repository checker: el token del bot se almacena como campo nativo protegido y cifrado, .releaseconfig.json usa el formato de matriz de plugins, anadidos esquemas JSON de VSCode y configuracion prettier, eliminadas devDependencies obsoletas, release-script actualizado, Node.js 26 anadido a la matriz de CI. README: eliminadas las instrucciones de instalacion con npm, anadida la seccion de licencia y copyright. La version 0.1.2 nunca se publico en npm - sus cambios estan incluidos en 0.1.3. Vuelva a introducir el token del bot si el adaptador no se conecta tras la actualizacion.",
+        "pl": "Porzadki dla repository checkera: token bota jest przechowywany jako chronione i szyfrowane pole native, .releaseconfig.json uzywa formatu tablicy pluginow, dodano schematy JSON VSCode i konfiguracje prettier, usunieto przestarzale devDependencies, zaktualizowano release-script, dodano Node.js 26 do macierzy CI. README: usunieto instrukcje instalacji npm, dodano sekcje licencji i praw autorskich. Wersja 0.1.2 nigdy nie zostala opublikowana na npm - jej zmiany sa zawarte w 0.1.3. Wprowadz ponownie token bota, jesli po aktualizacji adapter sie nie polaczy.",
+        "pt": "Limpeza para o repository checker: o token do bot e armazenado como campo nativo protegido e criptografado, .releaseconfig.json usa o formato de array de plugins, adicionados esquemas JSON do VSCode e configuracao prettier, removidas devDependencies obsoletas, release-script atualizado, Node.js 26 adicionado a matriz de CI. README: instrucoes de instalacao via npm removidas, secao de licenca e copyright adicionada. A versao 0.1.2 nunca foi publicada no npm - suas alteracoes estao incluidas na 0.1.3. Insira novamente o token do bot se o adaptador nao se conectar apos a atualizacao.",
+        "nl": "Opruimen voor de repository checker: het token van de bot wordt opgeslagen als beschermd en versleuteld native veld, .releaseconfig.json gebruikt het plugin-arrayformaat, VSCode JSON-schema's en prettier-configuratie toegevoegd, verouderde devDependencies verwijderd, release-script bijgewerkt, Node.js 26 toegevoegd aan de CI-matrix. README: directe npm-installatieinstructies verwijderd, licentie- en copyrightsectie toegevoegd. Versie 0.1.2 is nooit op npm gepubliceerd - de wijzigingen zitten in 0.1.3. Voer het token opnieuw in als de adapter na de update geen verbinding maakt.",
+        "uk": "Чищення для repository checker: токен бота зберігається як захищене та зашифроване нативне поле, .releaseconfig.json використовує формат масиву плагінів, додано схеми VSCode та конфігурацію prettier, видалено застарілі devDependencies, оновлено release-script, до CI-матриці додано Node.js 26. README: прибрано інструкцію встановлення через npm, додано розділ ліцензії та копірайту. Версія 0.1.2 ніколи не публікувалася на npm - її зміни входять до 0.1.3. Введіть токен бота знову, якщо після оновлення адаптер не підключається.",
+        "zh-cn": "仓库检查清理：机器人令牌作为受保护并加密的 native 字段存储，.releaseconfig.json 使用插件数组格式，添加了 VSCode JSON 架构和 prettier 配置，删除了过时的 devDependencies，更新了 release-script，并在 CI 矩阵中添加了 Node.js 26。README：删除了通过 npm 直接安装的说明，添加了许可证和版权部分。版本 0.1.2 从未发布到 npm - 其更改包含在 0.1.3 中。如果更新后适配器无法连接，请重新输入机器人令牌。"
       },
       "0.1.1": {
         "en": "Add CI/CD workflow, dependabot, release-script; fix async unload; fix object hierarchy; fix JSDoc",
@@ -115,6 +115,12 @@
     "sendToAllUsers": false,
     "logUnknownCommands": true
   },
+  "protectedNative": [
+    "token"
+  ],
+  "encryptedNative": [
+    "token"
+  ],
   "objects": [],
   "instanceObjects": [
     {

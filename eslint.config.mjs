@@ -1,8 +1,8 @@
-import config from "@iobroker/eslint-config";
+import config from '@iobroker/eslint-config';
 
 export default [
-  ...config,
-  {
-    ignores: ["node_modules/**", ".dev-server/**", "test/**"],
-  },
+    ...config,
+    {
+        ignores: ['node_modules/**', '.dev-server/**', 'test/**'],
+    },
 ];

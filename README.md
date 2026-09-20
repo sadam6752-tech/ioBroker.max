@@ -17,11 +17,9 @@ Analog to ioBroker.telegram — send notifications, receive commands, control de
 
 ## Installation
 
-Install via ioBroker Admin or:
-
-```bash
-npm install iobroker.max
-```
+Install the adapter through the ioBroker **Admin** interface: open *Adapters*, search for
+`max` and install the adapter from the *Latest* or *Stable* repository. No manual npm
+installation is required.
 
 ## Configuration
 
@@ -29,6 +27,10 @@ npm install iobroker.max
 2. Open adapter settings in ioBroker Admin
 3. Enter the **Bot Token**
 4. Optionally set **Allowed User IDs** (comma-separated) to restrict access
+
+The bot token is stored as a protected and encrypted native field (`protectedNative` /
+`encryptedNative`), so other adapters cannot read it. After upgrading from 0.1.1 or older,
+open the adapter settings once and save them again if the adapter cannot connect.
 
 ## Usage
 
@@ -64,6 +66,16 @@ broadcasts keep working without waiting for every user to write again.
 
 ## Changelog
 
+### 0.1.3 (2026-09-20)
+- (sadam6752-tech) Store the bot token as protected and encrypted native field (`protectedNative` / `encryptedNative`) so other adapters cannot read it
+- (sadam6752-tech) `.releaseconfig.json` migrated to the plugin array format
+- (sadam6752-tech) Added `prettier.config.mjs` and complete VSCode JSON schema mappings (io-package, package, jsonConfig/jsonCustom/jsonTab)
+- (sadam6752-tech) Removed obsolete devDependencies (mocha, eslint plugins, prettier, typescript-eslint), updated `@alcalzone/release-script` to 5.2.x and `@iobroker/testing` to 6.x
+- (sadam6752-tech) CI: added Node.js 26 to the test matrix and resynced `package-lock.json` so `npm ci` succeeds again
+- (sadam6752-tech) Added unit tests for the bot manager (`npm run test:js`), `npm test` now runs package and unit tests
+- (sadam6752-tech) README: removed direct npm installation instructions, added license and copyright section
+- (sadam6752-tech) 0.1.2 was never published to npm — its changes are included in 0.1.3
+
 ### 0.1.2 (2026-09-20)
 - (sadam6752-tech) Honor the `sendToAllUsers` setting: broadcasts are only sent when it is enabled
 - (sadam6752-tech) Apply the allowed-users filter to all incoming events (`bot_started`, `message_created`, `message_callback`)
@@ -82,4 +94,24 @@ broadcasts keep working without waiting for every user to write again.
 
 ## License
 
-MIT License — see [LICENSE](LICENSE)
+MIT License
+
+Copyright (c) 2026 sadam6752-tech sadam6752@gmail.com
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
