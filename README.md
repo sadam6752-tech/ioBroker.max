@@ -67,6 +67,13 @@ broadcasts keep working without waiting for every user to write again.
 
 ## Changelog
 
+### 0.1.5 (2026-09-21)
+- (sadam6752-tech) Update `@maxhub/max-bot-api` to 0.3.x - the library now talks to the MAX API host
+  `platform-api2.max.ru` (make sure the root certificate of the Russian Ministry of Digital Development
+  is in the trust store), plus comments API, sessions/conversation middleware and retry fixes
+- (sadam6752-tech) Move the changelog entries for 0.1.0 and 0.1.1 to CHANGELOG_OLD.md (checker W6020)
+- (sadam6752-tech) Update `@alcalzone/release-script-plugin-license` to 5.2.2 (checker S0064)
+
 ### 0.1.4 (2026-09-21)
 - (sadam6752-tech) **HOTFIX for 0.1.3**: declaring the bot token as `protectedNative` / `encryptedNative`
   made the js-controller transform previously stored plain text tokens into unusable data before the
@@ -92,14 +99,7 @@ broadcasts keep working without waiting for every user to write again.
 - (sadam6752-tech) Use `setStateAsync`/`extendObjectAsync`/`subscribeStatesAsync` consistently
 - (sadam6752-tech) Add CI workflow, dependabot config, `tsconfig.json` and VSCode JSON schemas
 
-### 0.1.1 (2026-03-30)
-- (sadam6752-tech) Add CI/CD workflow, dependabot, release-script
-- (sadam6752-tech) Fix async onUnload, null references after cleanup
-- (sadam6752-tech) Fix object hierarchy: add parent 'users' channel
-- (sadam6752-tech) Fix JSDoc descriptions
-
-### 0.1.0 (2026-03-18)
-- Initial release: MAX messenger bot integration for ioBroker
+Older changelog entries can be found in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
 ## License
 

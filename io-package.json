@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "max",
-    "version": "0.1.4",
+    "version": "0.1.5",
     "titleLang": {
       "en": "MAX Messenger Bot",
       "de": "MAX Messenger Bot",
@@ -29,6 +29,19 @@
       "zh-cn": "通过 MAX Messenger 机器人发送和接收消息"
     },
     "news": {
+      "0.1.5": {
+        "en": "Updated `@maxhub/max-bot-api` to 0.3.x: the library now uses the MAX API host `platform-api2.max.ru` (please make sure the root certificate of the Russian Ministry of Digital Development is trusted), plus comments API, sessions and retry fixes. Maintenance: older changelog entries moved to CHANGELOG_OLD.md, release tooling updated.",
+        "de": "`@maxhub/max-bot-api` auf 0.3.x aktualisiert: Die Bibliothek nutzt jetzt den MAX-API-Host `platform-api2.max.ru` (bitte sicherstellen, dass das Root-Zertifikat des russischen Digitalministeriums als vertrauenswürdig eingetragen ist), dazu Kommentar-API, Sessions und Retry-Fixes. Wartung: ältere Changelog-Einträge nach CHANGELOG_OLD.md verschoben, Release-Tooling aktualisiert.",
+        "ru": "Обновлён `@maxhub/max-bot-api` до 0.3.x: библиотека использует хост MAX API `platform-api2.max.ru` (проверьте, что корневой сертификат Минцифры добавлен в доверенные), а также API комментариев, сессии и исправления retry. Обслуживание: старые записи changelog перенесены в CHANGELOG_OLD.md, обновлены инструменты релиза.",
+        "fr": "Mise à jour de `@maxhub/max-bot-api` vers 0.3.x : la bibliothèque utilise désormais l'hôte MAX API `platform-api2.max.ru` (vérifiez que le certificat racine du ministère russe du numérique est approuvé), plus API de commentaires, sessions et correctifs de retry. Maintenance : anciennes entrées du changelog déplacées vers CHANGELOG_OLD.md.",
+        "it": "Aggiornato `@maxhub/max-bot-api` a 0.3.x: la libreria ora usa l'host MAX API `platform-api2.max.ru` (verificare che il certificato root del ministero russo del digitale sia attendibile), oltre ad API commenti, sessioni e correzioni di retry. Manutenzione: voci di changelog più vecchie spostate in CHANGELOG_OLD.md.",
+        "es": "Actualizado `@maxhub/max-bot-api` a 0.3.x: la biblioteca usa ahora el host MAX API `platform-api2.max.ru` (asegúrate de que el certificado raíz del ministerio digital ruso sea de confianza), además de API de comentarios, sesiones y correcciones de reintento. Mantenimiento: entradas antiguas del changelog movidas a CHANGELOG_OLD.md.",
+        "pl": "Zaktualizowano `@maxhub/max-bot-api` do 0.3.x: biblioteka korzysta teraz z hosta MAX API `platform-api2.max.ru` (upewnij się, że certyfikat główny rosyjskiego ministerstwa cyfryzacji jest zaufany), a także API komentarzy, sesje i poprawki retry. Konserwacja: starsze wpisy changelogu przeniesione do CHANGELOG_OLD.md.",
+        "pt": "Atualizado `@maxhub/max-bot-api` para 0.3.x: a biblioteca agora usa o host MAX API `platform-api2.max.ru` (garanta que o certificado raiz do ministério digital russo seja confiável), além de API de comentários, sessões e correções de retry. Manutenção: entradas antigas do changelog movidas para CHANGELOG_OLD.md.",
+        "nl": "`@maxhub/max-bot-api` bijgewerkt naar 0.3.x: de bibliotheek gebruikt nu de MAX API-host `platform-api2.max.ru` (zorg dat het rootcertificaat van het Russische ministerie van Digitalisering vertrouwd is), plus comments-API, sessies en retry-fixes. Onderhoud: oudere changelog-vermeldingen verplaatst naar CHANGELOG_OLD.md.",
+        "uk": "Оновлено `@maxhub/max-bot-api` до 0.3.x: бібліотека використовує хост MAX API `platform-api2.max.ru` (переконайтеся, що кореневий сертифікат Мінцифри додано до довірених), а також API коментарів, сесії та виправлення retry. Обслуговування: старі записи changelog перенесено до CHANGELOG_OLD.md.",
+        "zh-cn": "将 `@maxhub/max-bot-api` 更新至 0.3.x：库现在使用 MAX API 主机 `platform-api2.max.ru`（请确保已信任俄罗斯数字发展部的根证书），并新增评论 API、会话与重试修复。维护：较早的变更日志条目已移至 CHANGELOG_OLD.md。"
+      },
       "0.1.4": {
         "en": "HOTFIX: v0.1.3 declared the token as protectedNative/encryptedNative. The js-controller then converted previously stored plain text tokens into unusable data before the adapter started (XOR with the system secret, without any warning), so the adapter could not log in to the MAX API. encryptedNative has been removed again - the token is only marked as protectedNative, stored tokens keep working. Unusable tokens are detected and reported, so the token can simply be entered again.",
         "de": "HOTFIX: In v0.1.3 wurde der Token als protectedNative/encryptedNative deklariert. Der js-controller hat daraufhin zuvor als Klartext gespeicherte Tokens vor dem Adapterstart in unbrauchbare Daten umgewandelt (XOR mit dem System-Secret, ohne Warnung), sodass der Adapter sich nicht mehr bei der MAX-API anmelden konnte. encryptedNative wurde wieder entfernt, der Token ist nur noch als protectedNative markiert, gespeicherte Tokens funktionieren weiter. Unbrauchbare Tokens werden erkannt und gemeldet, der Token kann einfach neu eingegeben werden.",
