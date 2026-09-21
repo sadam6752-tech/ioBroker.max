@@ -7,6 +7,7 @@
 
 const utils = require('@iobroker/adapter-core');
 const BotManager = require('./lib/bot-manager');
+const { normalizeSecrets } = require('./lib/secrets');
 
 class MaxAdapter extends utils.Adapter {
     /**
@@ -35,6 +36,9 @@ class MaxAdapter extends utils.Adapter {
         this.log.debug('onReady executing...');
 
         await this.setStateAsync('info.connection', false, true);
+
+        // Repair/replace an unusable token before it is used (see v0.1.4 changelog)
+        await normalizeSecrets(this.config, this.log, attr => this.getEncryptedConfig(attr));
 
         // Create instance objects (idempotent via extendObjectAsync)
         await this.extendObjectAsync('info', {

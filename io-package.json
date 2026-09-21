@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "max",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "titleLang": {
       "en": "MAX Messenger Bot",
       "de": "MAX Messenger Bot",
@@ -29,6 +29,19 @@
       "zh-cn": "通过 MAX Messenger 机器人发送和接收消息"
     },
     "news": {
+      "0.1.4": {
+        "en": "HOTFIX: v0.1.3 declared the token as protectedNative/encryptedNative. The js-controller then converted previously stored plain text tokens into unusable data before the adapter started (XOR with the system secret, without any warning), so the adapter could not log in to the MAX API. encryptedNative has been removed again - the token is only marked as protectedNative, stored tokens keep working. Unusable tokens are detected and reported, so the token can simply be entered again.",
+        "de": "HOTFIX: In v0.1.3 wurde der Token als protectedNative/encryptedNative deklariert. Der js-controller hat daraufhin zuvor als Klartext gespeicherte Tokens vor dem Adapterstart in unbrauchbare Daten umgewandelt (XOR mit dem System-Secret, ohne Warnung), sodass der Adapter sich nicht mehr bei der MAX-API anmelden konnte. encryptedNative wurde wieder entfernt, der Token ist nur noch als protectedNative markiert, gespeicherte Tokens funktionieren weiter. Unbrauchbare Tokens werden erkannt und gemeldet, der Token kann einfach neu eingegeben werden.",
+        "ru": "HOTFIX: в v0.1.3 токен был объявлен как protectedNative/encryptedNative. js-controller перед запуском адаптера превращал ранее сохранённый токен в открытом виде в нечитаемые данные (XOR с системным секретом, без предупреждения), из-за чего адаптер не мог войти в API MAX. encryptedNative снова удалён, токен помечен только как protectedNative, сохранённые токены продолжают работать. Нечитаемые токены выявляются и сообщаются - токен можно просто ввести заново.",
+        "fr": "HOTFIX : la v0.1.3 declarait le jeton comme protectedNative/encryptedNative. Le js-controller transformait alors le jeton precedemment enregistre en clair en donnees inutilisables avant le demarrage de l'adaptateur (XOR avec le secret systeme, sans avertissement), l'adaptateur ne pouvait plus se connecter a l'API MAX. encryptedNative a ete retire ; le jeton n'est plus que protectedNative, les jetons enregistres continuent de fonctionner. Les jetons inutilisables sont detectes et signales, il suffit de saisir a nouveau le jeton.",
+        "it": "HOTFIX: la v0.1.3 dichiarava il token come protectedNative/encryptedNative. Il js-controller trasformava quindi il token salvato in precedenza in chiaro in dati inutilizzabili prima dell'avvio dell'adattatore (XOR con il segreto di sistema, senza avviso), quindi l'adattatore non riusciva piu ad accedere all'API MAX. encryptedNative e stato rimosso di nuovo; il token e solo protectedNative, i token salvati continuano a funzionare. I token inutilizzabili vengono rilevati e segnalati, basta inserire di nuovo il token.",
+        "es": "HOTFIX: la v0.1.3 declaraba el token como protectedNative/encryptedNative. El js-controller convertia entonces el token guardado previamente en texto claro en datos inutilizables antes de iniciar el adaptador (XOR con el secreto del sistema, sin aviso), por lo que el adaptador ya no podia iniciar sesion en la API de MAX. Se ha vuelto a quitar encryptedNative; el token solo se marca como protectedNative, los tokens guardados siguen funcionando. Los tokens inutilizables se detectan y se notifican, basta con volver a introducir el token.",
+        "pl": "HOTFIX: w v0.1.3 token zadeklarowano jako protectedNative/encryptedNative. js-controller zamienil wczesniej zapisany token w postaci jawnej na nieuzywalne dane przed startem adaptera (XOR z sekretem systemowym, bez ostrzezenia), przez co adapter nie mogl zalogowac sie do API MAX. encryptedNative zostal ponownie usuniety, token jest tylko oznaczony jako protectedNative, zapisane tokeny nadal dzialaja. Nieuzywalne tokeny sa wykrywane i zglaszane, wystarczy ponownie wprowadzic token.",
+        "pt": "HOTFIX: na v0.1.3 o token foi declarado como protectedNative/encryptedNative. O js-controller convertia entao o token guardado anteriormente em texto simples em dados inutilizaveis antes de iniciar o adaptador (XOR com o segredo do sistema, sem aviso), pelo que o adaptador deixava de conseguir autenticar-se na API MAX. O encryptedNative foi removido novamente; o token fica apenas como protectedNative, os tokens guardados continuam a funcionar. Tokens inutilizaveis sao detetados e comunicados, bastando introduzir o token novamente.",
+        "nl": "HOTFIX: in v0.1.3 was het token gedeclareerd als protectedNative/encryptedNative. De js-controller zette het eerder als platte tekst opgeslagen token om in onbruikbare data voordat de adapter startte (XOR met het systeemgeheim, zonder waarschuwing), waardoor de adapter niet meer kon inloggen bij de MAX-API. encryptedNative is weer verwijderd; het token is alleen nog protectedNative, opgeslagen tokens blijven werken. Onbruikbare tokens worden herkend en gemeld, het token kan gewoon opnieuw worden ingevoerd.",
+        "uk": "HOTFIX: у v0.1.3 токен було оголошено як protectedNative/encryptedNative. js-controller перетворював раніше збережений токен у відкритому вигляді на нечитабельні дані до запуску адаптера (XOR із системним секретом, без попередження), тому адаптер не міг увійти в API MAX. encryptedNative знову прибрано, токен позначено лише як protectedNative, збережені токени продовжують працювати. Нечитабельні токени визначаються та повідомляються - токен можна просто ввести заново.",
+        "zh-cn": "HOTFIX：v0.1.3 将令牌声明为 protectedNative/encryptedNative。js-controller 因此在适配器启动前将之前以明文保存的令牌转换为不可用数据（与系统密钥进行 XOR，且无任何警告），导致适配器无法登录 MAX API。现已再次移除 encryptedNative；令牌仅标记为 protectedNative，已保存的令牌仍可正常使用。不可用的令牌会被识别并报告，只需重新输入令牌即可。"
+      },
       "0.1.3": {
         "en": "Repository checker cleanup: bot token is stored as a protected and encrypted native field, .releaseconfig.json uses the plugin array format, VSCode JSON schemas and prettier config added, obsolete devDependencies removed, release-script updated, Node.js 26 added to the CI matrix. README: direct npm install instructions removed, license and copyright section added. Version 0.1.2 was never published to npm - its changes are included in 0.1.3. Re-enter the bot token once if the adapter cannot connect after the update.",
         "de": "Aufraeumen fuer den Repository-Checker: Bot-Token wird als geschuetztes und verschluesseltes natives Feld gespeichert, .releaseconfig.json nutzt das Plugin-Array-Format, VSCode-JSON-Schemas und prettier-Konfiguration ergaenzt, veraltete devDependencies entfernt, release-script aktualisiert, Node.js 26 in der CI-Matrix ergaenzt. README: direkte npm-Installationsanleitung entfernt, Lizenz- und Copyright-Abschnitt ergaenzt. Version 0.1.2 wurde nie auf npm veroeffentlicht - ihre Aenderungen sind in 0.1.3 enthalten. Bot-Token einmal neu eingeben, falls der Adapter nach dem Update keine Verbindung aufbaut.",
@@ -116,9 +129,6 @@
     "logUnknownCommands": true
   },
   "protectedNative": [
-    "token"
-  ],
-  "encryptedNative": [
     "token"
   ],
   "objects": [],
