@@ -8,6 +8,7 @@
 const utils = require('@iobroker/adapter-core');
 const BotManager = require('./lib/bot-manager');
 const { normalizeSecrets } = require('./lib/secrets');
+const { describeError } = require('./lib/max-fetch');
 
 /** Delay before a failed bot start (network problem) is retried (ms) */
 const START_RETRY_DELAY = 60000;
@@ -160,7 +161,7 @@ class MaxAdapter extends utils.Adapter {
             if (this.unloading) {
                 return;
             }
-            const message = e && typeof e === 'object' && 'message' in e ? e.message : String(e);
+            const message = describeError(e);
             const status = e && typeof e === 'object' ? e.status : undefined;
             if (status === 401 || status === 403) {
                 this.log.error(
@@ -300,8 +301,8 @@ class MaxAdapter extends utils.Adapter {
             this.log.debug(`Message sent to user ${userId}`);
             return { result: 'sent' };
         } catch (e) {
-            this.log.error(`Failed to send message to ${userId}: ${e.message}`);
-            return { error: e.message };
+            this.log.error(`Failed to send message to ${userId}: ${describeError(e)}`);
+            return { error: describeError(e) };
         }
     }
 
@@ -331,8 +332,8 @@ class MaxAdapter extends utils.Adapter {
             }
             return { result: 'sent', ...summary };
         } catch (e) {
-            this.log.error(`Failed to send to all: ${e.message}`);
-            return { error: e.message };
+            this.log.error(`Failed to send to all: ${describeError(e)}`);
+            return { error: describeError(e) };
         }
     }
 

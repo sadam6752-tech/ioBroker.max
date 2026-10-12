@@ -41,6 +41,16 @@ adapters cannot read it. It is kept as plain text inside the instance configurat
 `encryptedNative` is deliberately not used, because the js-controller would "decrypt" already stored
 plain text tokens into unusable data (the legacy decryption is a XOR without a format check).
 
+### Certificate of the MAX API
+
+The MAX API (`platform-api2.max.ru`) uses a certificate issued by the **Russian Trusted Root CA** of the Russian
+Ministry of Digital Development. Node.js does not include this root certificate and ignores the trust store of the
+operating system, so connections would fail with `fetch failed (UNABLE_TO_GET_ISSUER_CERT_LOCALLY)`. The adapter
+therefore ships this root certificate (`lib/certs/russian-trusted-root-ca.pem`, valid until 2032, SHA-256
+`D2:6D:2D:02:31:B7:C3:9F:92:CC:73:85:12:BA:54:10:35:19:E4:40:5D:68:B5:BD:70:3E:97:88:CA:8E:CF:31`) and trusts it
+**only for its own requests to the MAX API**. Nothing has to be installed on the host, and the global trust store of
+Node.js as well as all other adapters stay untouched.
+
 ## Usage
 
 ### Send via state
@@ -93,6 +103,12 @@ Known users are restored from the object tree after an adapter restart, so
 broadcasts keep working without waiting for every user to write again.
 
 ## Changelog
+
+### 0.1.7 (2026-10-12)
+- (sadam6752-tech) Fix: the adapter could not connect to the MAX API (`fetch failed`) because Node.js does not trust
+  the Russian Trusted Root CA used by `platform-api2.max.ru`. The adapter now ships this root certificate and trusts it
+  for its own MAX API requests only (new dependency `undici`)
+- (sadam6752-tech) Connection errors are logged with their cause (e.g. certificate, DNS) instead of only `fetch failed`
 
 ### 0.1.6 (2026-10-12)
 - (sadam6752-tech) Fix: `info.connection` is now set once the token has been verified; before, the adapter waited for

@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "max",
-    "version": "0.1.6",
+    "version": "0.1.7",
     "titleLang": {
       "en": "MAX Messenger Bot",
       "de": "MAX Messenger Bot",
@@ -29,6 +29,19 @@
       "zh-cn": "通过 MAX Messenger 机器人发送和接收消息"
     },
     "news": {
+      "0.1.7": {
+        "en": "Fix: the adapter could not connect to the MAX API (\"fetch failed\") because Node.js does not trust the Russian Trusted Root CA used by platform-api2.max.ru. The adapter now ships this root certificate and trusts it for its own MAX API requests only; nothing has to be installed on the host. Connection errors are logged with their cause.",
+        "de": "Fix: Der Adapter konnte keine Verbindung zur MAX-API herstellen („fetch failed“), weil Node.js der von platform-api2.max.ru verwendeten Russian Trusted Root CA nicht vertraut. Der Adapter bringt dieses Root-Zertifikat jetzt mit und vertraut ihm nur für seine eigenen Anfragen an die MAX-API; auf dem Host muss nichts installiert werden. Verbindungsfehler werden mit ihrer Ursache protokolliert.",
+        "ru": "Исправлено: адаптер не мог подключиться к MAX API («fetch failed»), так как Node.js не доверяет корневому сертификату Russian Trusted Root CA, который использует platform-api2.max.ru. Теперь адаптер содержит этот корневой сертификат и доверяет ему только для собственных запросов к MAX API; на хосте ничего устанавливать не нужно. Ошибки соединения записываются в лог вместе с причиной.",
+        "pt": "Correção: o adaptador não conseguia ligar-se à API MAX («fetch failed») porque o Node.js não confia na Russian Trusted Root CA usada por platform-api2.max.ru. O adaptador inclui agora este certificado raiz e confia nele apenas para os seus próprios pedidos à API MAX; não é preciso instalar nada no anfitrião. Os erros de ligação são registados com a sua causa.",
+        "nl": "Oplossing: de adapter kon geen verbinding maken met de MAX-API (\"fetch failed\") omdat Node.js de Russian Trusted Root CA van platform-api2.max.ru niet vertrouwt. De adapter levert dit rootcertificaat nu zelf mee en vertrouwt het alleen voor zijn eigen verzoeken aan de MAX-API; op de host hoeft niets te worden geïnstalleerd. Verbindingsfouten worden met hun oorzaak gelogd.",
+        "fr": "Correction : l’adaptateur ne pouvait pas se connecter à l’API MAX (« fetch failed ») car Node.js ne fait pas confiance à la Russian Trusted Root CA utilisée par platform-api2.max.ru. L’adaptateur embarque désormais ce certificat racine et ne lui fait confiance que pour ses propres requêtes vers l’API MAX ; rien n’est à installer sur l’hôte. Les erreurs de connexion sont journalisées avec leur cause.",
+        "it": "Correzione: l’adattatore non riusciva a connettersi all’API MAX («fetch failed») perché Node.js non considera attendibile la Russian Trusted Root CA usata da platform-api2.max.ru. L’adattatore ora include questo certificato radice e lo considera attendibile solo per le proprie richieste all’API MAX; sull’host non va installato nulla. Gli errori di connessione vengono registrati con la loro causa.",
+        "es": "Corrección: el adaptador no podía conectarse a la API de MAX («fetch failed») porque Node.js no confía en la Russian Trusted Root CA que usa platform-api2.max.ru. El adaptador incluye ahora este certificado raíz y solo confía en él para sus propias solicitudes a la API de MAX; no hay que instalar nada en el equipo. Los errores de conexión se registran con su causa.",
+        "pl": "Poprawka: adapter nie mógł połączyć się z API MAX („fetch failed”), ponieważ Node.js nie ufa certyfikatowi Russian Trusted Root CA używanemu przez platform-api2.max.ru. Adapter zawiera teraz ten certyfikat główny i ufa mu wyłącznie przy własnych żądaniach do API MAX; na hoście nie trzeba niczego instalować. Błędy połączenia są rejestrowane wraz z przyczyną.",
+        "uk": "Виправлено: адаптер не міг підключитися до MAX API («fetch failed»), бо Node.js не довіряє кореневому сертифікату Russian Trusted Root CA, який використовує platform-api2.max.ru. Тепер адаптер містить цей кореневий сертифікат і довіряє йому лише для власних запитів до MAX API; на хості нічого встановлювати не потрібно. Помилки з’єднання записуються в журнал разом із причиною.",
+        "zh-cn": "修复：由于 Node.js 不信任 platform-api2.max.ru 使用的 Russian Trusted Root CA，适配器无法连接 MAX API（“fetch failed”）。适配器现在自带该根证书，且仅在自身对 MAX API 的请求中信任它；无需在主机上安装任何内容。连接错误会连同原因一起记录到日志。"
+      },
       "0.1.6": {
         "en": "Fix: info.connection turns green once the token is verified; lost connections are logged and retried automatically. Fix: sendTo() reaches the adapter and reports errors to the caller. Fix: objects are created for users who were messaged before they wrote to the bot. Broadcasts respect the allowed users list. The bot token is shown as a password field. Updated @maxhub/max-bot-api to 1.0.2.",
         "de": "Fix: info.connection wird grün, sobald der Token geprüft ist; Verbindungsabbrüche werden protokolliert und automatisch wiederholt. Fix: sendTo() erreicht den Adapter und meldet Fehler an den Aufrufer. Fix: Objekte werden auch für Benutzer angelegt, denen zuerst geschrieben wurde. Rundsendungen beachten die Liste der erlaubten Benutzer. Der Bot-Token wird als Passwortfeld angezeigt. @maxhub/max-bot-api auf 1.0.2 aktualisiert.",
