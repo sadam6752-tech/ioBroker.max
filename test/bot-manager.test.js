@@ -95,6 +95,7 @@ function createAdapterMock(config = {}) {
 function createBotMock() {
     const bot = new EventEmitter();
     bot.sent = [];
+    bot.extras = [];
     bot.stopped = false;
     bot.errorHandler = null;
     bot.api = {
@@ -102,8 +103,9 @@ function createBotMock() {
          * @param {number} userId - target user
          * @param {string} text - message text
          */
-        async sendMessageToUser(userId, text) {
+        async sendMessageToUser(userId, text, extra) {
             bot.sent.push({ userId, text });
+            bot.extras.push(extra);
         },
     };
     bot.catch = (handler) => {
@@ -220,6 +222,61 @@ describe('BotManager', () => {
             await flush();
             assert.deepEqual(adapter.createdUsers, ['123']);
             assert.equal(adapter.states.get('users.123.username'), 'Max');
+        });
+    });
+
+    describe('attachments', () => {
+        it('sends prepared attachments with the message', async () => {
+            const bot = createBotMock();
+            manager.bot = bot;
+            const attachments = [{ type: 'image', payload: { token: 't' } }];
+            await manager.sendMessage('5', '', attachments);
+            assert.deepEqual(bot.sent, [{ userId: 5, text: undefined }]);
+            assert.deepEqual(bot.extras, [{ attachments }]);
+        });
+
+        it('sends text only without extra options', async () => {
+            const bot = createBotMock();
+            manager.bot = bot;
+            await manager.sendMessage('5', 'hi');
+            assert.deepEqual(bot.extras, [undefined]);
+        });
+
+        it('uploads each attachment once and reuses it for a broadcast', async () => {
+            const bot = createBotMock();
+            const uploads = [];
+            bot.api.raw = {
+                uploads: {
+                    getUploadUrl: async ({ type }) => {
+                        uploads.push(type);
+                        return { url: 'https://upload.example/u', token: `${type}-token` };
+                    },
+                },
+            };
+            manager.bot = bot;
+            manager.http = {
+                fetch: async () => ({ ok: true, status: 200, text: async () => '<retval>1</retval>' }),
+            };
+            const attachments = await manager.prepareAttachments([{ type: 'video', source: __filename }]);
+            assert.deepEqual(attachments, [{ type: 'video', payload: { token: 'video-token' } }]);
+            manager.knownUsers.add('1');
+            manager.knownUsers.add('2');
+            await manager.sendToAll('look', attachments);
+            assert.deepEqual(uploads, ['video']);
+            assert.equal(bot.extras.length, 2);
+            assert.ok(bot.extras.every(extra => extra.attachments === attachments));
+        });
+
+        it('names the attachment that could not be prepared', async () => {
+            manager.bot = createBotMock();
+            await assert.rejects(
+                () => manager.prepareAttachments([{ type: 'image', source: '/does/not/exist.jpg' }]),
+                /Cannot attach image \/does\/not\/exist\.jpg: Cannot read/,
+            );
+        });
+
+        it('throws when the bot was not started', async () => {
+            await assert.rejects(() => manager.prepareAttachments([]), /Bot not started/);
         });
     });
 

@@ -15,7 +15,7 @@ require.cache[corePath] = /** @type {any} */ ({
 });
 const mainPath = require.resolve('../main');
 delete require.cache[mainPath];
-const { MaxAdapter, parseSendValue } = require('../main');
+const { MaxAdapter, parseSendValue, parseSendRequest, parseStateValue } = require('../main');
 delete require.cache[mainPath];
 if (realCore) {
     require.cache[corePath] = realCore;
@@ -76,17 +76,26 @@ function createManagerMock() {
     return {
         sent: [],
         broadcasts: [],
+        prepared: [],
+        prepareError: null,
         stopped: false,
         sendError: null,
         summary: { sent: 2, failed: 0, skipped: 0 },
-        async sendMessage(userId, text) {
+        async prepareAttachments(media) {
+            if (this.prepareError) {
+                throw this.prepareError;
+            }
+            this.prepared.push(media);
+            return media.map(m => ({ type: m.type, payload: { token: `${m.type}:${m.source}` } }));
+        },
+        async sendMessage(userId, text, attachments = []) {
             if (this.sendError) {
                 throw this.sendError;
             }
-            this.sent.push({ userId, text });
+            this.sent.push(attachments.length ? { userId, text, attachments } : { userId, text });
         },
-        async sendToAll(text) {
-            this.broadcasts.push(text);
+        async sendToAll(text, attachments = []) {
+            this.broadcasts.push(attachments.length ? { text, attachments } : text);
             return this.summary;
         },
         stop() {
@@ -108,6 +117,38 @@ describe('main.js', () => {
 
         it('treats plain text as a broadcast', () => {
             assert.deepEqual(parseSendValue('  Hello everyone '), { userId: null, text: 'Hello everyone' });
+        });
+    });
+
+    describe('parseSendRequest', () => {
+        it('reads recipient, text and attachments', () => {
+            assert.deepEqual(parseSendRequest({ userId: 5, text: ' Hi ', image: '/a.jpg' }), {
+                userId: '5',
+                text: 'Hi',
+                media: [{ type: 'image', source: '/a.jpg' }],
+            });
+        });
+
+        it('treats a string as a broadcast', () => {
+            assert.deepEqual(parseSendRequest('Hi'), { userId: null, text: 'Hi', media: [] });
+        });
+    });
+
+    describe('parseStateValue', () => {
+        it('reads a JSON object', () => {
+            assert.deepEqual(parseStateValue('{"userId":7,"file":"/r.pdf"}'), {
+                userId: '7',
+                text: '',
+                media: [{ type: 'file', source: '/r.pdf' }],
+            });
+        });
+
+        it('sends text that only looks like JSON as text', () => {
+            assert.deepEqual(parseStateValue('{status} ok'), { userId: null, text: '{status} ok', media: [] });
+        });
+
+        it('keeps the "userId|text" format', () => {
+            assert.deepEqual(parseStateValue('12|Hi'), { userId: '12', text: 'Hi', media: [] });
         });
     });
 
@@ -150,6 +191,42 @@ describe('main.js', () => {
             await adapter.onStateChange('max.0.users.42.send', { val: ' Hi ', ack: false });
             assert.deepEqual(manager.sent, [{ userId: '42', text: 'Hi' }]);
             assert.equal(adapter.states.get('users.42.send'), '');
+        });
+
+        it('sends JSON with an image from message.send', async () => {
+            await adapter.onStateChange('max.0.message.send', {
+                val: '{"userId": 123, "text": "Door", "image": "/snap.jpg"}',
+                ack: false,
+            });
+            assert.deepEqual(manager.sent, [
+                { userId: '123', text: 'Door', attachments: [{ type: 'image', payload: { token: 'image:/snap.jpg' } }] },
+            ]);
+            assert.equal(adapter.states.get('message.send'), '');
+        });
+
+        it('broadcasts JSON without userId', async () => {
+            await adapter.onStateChange('max.0.message.send', { val: '{"image": "/snap.jpg"}', ack: false });
+            assert.equal(manager.broadcasts.length, 1);
+            assert.equal(manager.broadcasts[0].attachments.length, 1);
+        });
+
+        it('sends JSON from users.<id>.send to that user, ignoring another userId', async () => {
+            await adapter.onStateChange('max.0.users.42.send', { val: '{"userId": 1, "file": "/r.pdf"}', ack: false });
+            assert.equal(manager.sent[0].userId, '42');
+            assert.equal(manager.sent[0].attachments[0].type, 'file');
+            assert.equal(adapter.states.get('users.42.send'), '');
+        });
+
+        it('keeps "|" in the text of users.<id>.send', async () => {
+            await adapter.onStateChange('max.0.users.42.send', { val: '5|5', ack: false });
+            assert.deepEqual(manager.sent, [{ userId: '42', text: '5|5' }]);
+        });
+
+        it('logs an invalid attachment and resets the state', async () => {
+            await adapter.onStateChange('max.0.message.send', { val: '{"userId": 1, "image": 5}', ack: false });
+            assert.equal(manager.sent.length, 0);
+            assert.match(adapter.logs.error[0], /Invalid image/);
+            assert.equal(adapter.states.get('message.send'), '');
         });
 
         it('ignores states of other instances', async () => {
@@ -222,7 +299,40 @@ describe('main.js', () => {
             await adapter.onMessage(msg('   '));
             assert.equal(manager.sent.length, 0);
             assert.equal(adapter.replies.length, 3);
-            assert.ok(adapter.replies.every(r => r.message.error === 'No text given'));
+            assert.ok(adapter.replies.every(r => r.message.error === 'No text or attachment given'));
+        });
+
+        it('sends attachments without text', async () => {
+            await adapter.onMessage(msg({ userId: 9, image: ['/a.jpg', '/b.jpg'], audio: '/c.ogg' }));
+            assert.deepEqual(manager.prepared, [
+                [
+                    { type: 'image', source: '/a.jpg' },
+                    { type: 'image', source: '/b.jpg' },
+                    { type: 'audio', source: '/c.ogg' },
+                ],
+            ]);
+            assert.equal(manager.sent[0].text, '');
+            assert.equal(manager.sent[0].attachments.length, 3);
+            assert.deepEqual(adapter.replies[0].message, { result: 'sent' });
+        });
+
+        it('reports an attachment that cannot be uploaded', async () => {
+            manager.prepareError = new Error('Cannot attach image /a.jpg: Cannot read /a.jpg: ENOENT');
+            await adapter.onMessage(msg({ userId: 9, image: '/a.jpg' }));
+            assert.equal(manager.sent.length, 0);
+            assert.match(adapter.replies[0].message.error, /ENOENT/);
+        });
+
+        it('rejects an invalid attachment', async () => {
+            await adapter.onMessage(msg({ userId: 9, video: { path: '/x' } }));
+            assert.match(adapter.replies[0].message.error, /Invalid video/);
+        });
+
+        it('does not upload a broadcast that is disabled', async () => {
+            adapter.config.sendToAllUsers = false;
+            await adapter.onMessage(msg({ image: '/a.jpg' }));
+            assert.deepEqual(manager.prepared, []);
+            assert.deepEqual(adapter.replies[0].message, { error: 'sendToAllUsers is disabled' });
         });
 
         it('answers an unknown command', async () => {
@@ -329,7 +439,7 @@ describe('main.js', () => {
 
         it('describes message.send like the code does', () => {
             const obj = ioPackage.instanceObjects.find(o => o._id === 'message.send');
-            assert.equal(obj.common.name, 'Send message (format: userId|text, or plain text to all users)');
+            assert.equal(obj.common.name, 'Send message (format: userId|text, plain text to all users, or JSON)');
         });
 
         it('has the same keys in all admin translations and no untranslated text', () => {

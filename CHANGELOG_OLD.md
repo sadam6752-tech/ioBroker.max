@@ -1,5 +1,15 @@
 # Older Changelog
 
+### 0.1.3 (2026-09-20)
+- (sadam6752-tech) Store the bot token as protected and encrypted native field (`protectedNative` / `encryptedNative`) so other adapters cannot read it
+- (sadam6752-tech) `.releaseconfig.json` migrated to the plugin array format
+- (sadam6752-tech) Added `prettier.config.mjs` and complete VSCode JSON schema mappings (io-package, package, jsonConfig/jsonCustom/jsonTab)
+- (sadam6752-tech) Removed obsolete devDependencies (mocha, eslint plugins, prettier, typescript-eslint), updated `@alcalzone/release-script` to 5.2.x and `@iobroker/testing` to 6.x
+- (sadam6752-tech) CI: added Node.js 26 to the test matrix and resynced `package-lock.json` so `npm ci` succeeds again
+- (sadam6752-tech) Added unit tests for the bot manager (`npm run test:js`), `npm test` now runs package and unit tests
+- (sadam6752-tech) README: removed direct npm installation instructions, added license and copyright section
+- (sadam6752-tech) 0.1.2 was never published to npm — its changes are included in 0.1.3
+
 ### 0.1.2 (2026-09-20)
 - (sadam6752-tech) Honor the `sendToAllUsers` setting: broadcasts are only sent when it is enabled
 - (sadam6752-tech) Apply the allowed-users filter to all incoming events (`bot_started`, `message_created`, `message_callback`)

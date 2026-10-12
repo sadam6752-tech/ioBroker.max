@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "max",
-    "version": "0.1.7",
+    "version": "0.1.8",
     "titleLang": {
       "en": "MAX Messenger Bot",
       "de": "MAX Messenger Bot",
@@ -29,6 +29,19 @@
       "zh-cn": "通过 MAX Messenger 机器人发送和接收消息"
     },
     "news": {
+      "0.1.8": {
+        "en": "Send images, videos, audio and files: sendTo() with image, video, audio or file (local path or http(s) URL, also several per message, e.g. a camera snapshot from the local network) and JSON in message.send and users.<id>.send. The adapter downloads and uploads the files itself, so the certificate fix of 0.1.7 applies to uploads as well.",
+        "de": "Bilder, Videos, Audio und Dateien senden: sendTo() mit image, video, audio oder file (lokaler Pfad oder http(s)-URL, auch mehrere pro Nachricht, z. B. ein Kamerabild aus dem lokalen Netz) sowie JSON in message.send und users.<id>.send. Der Adapter lädt die Dateien selbst herunter und hoch, daher gilt der Zertifikats-Fix aus 0.1.7 auch für Uploads.",
+        "ru": "Отправка картинок, видео, аудио и файлов: sendTo() с image, video, audio или file (локальный путь или http(s)-URL, несколько вложений в одном сообщении, например снимок камеры из локальной сети), а также JSON в message.send и users.<id>.send. Адаптер сам скачивает и загружает файлы, поэтому исправление сертификата из 0.1.7 действует и для загрузки.",
+        "pt": "Enviar imagens, vídeos, áudio e ficheiros: sendTo() com image, video, audio ou file (caminho local ou URL http(s), também vários por mensagem, p. ex. uma imagem de câmara da rede local) e JSON em message.send e users.<id>.send. O adaptador descarrega e carrega os ficheiros ele próprio, por isso a correção do certificado da 0.1.7 também se aplica aos carregamentos.",
+        "nl": "Afbeeldingen, video’s, audio en bestanden versturen: sendTo() met image, video, audio of file (lokaal pad of http(s)-URL, ook meerdere per bericht, bijv. een camerabeeld uit het lokale netwerk) en JSON in message.send en users.<id>.send. De adapter downloadt en uploadt de bestanden zelf, zodat de certificaatoplossing van 0.1.7 ook voor uploads geldt.",
+        "fr": "Envoi d’images, de vidéos, d’audio et de fichiers : sendTo() avec image, video, audio ou file (chemin local ou URL http(s), plusieurs par message, p. ex. une image de caméra du réseau local) et JSON dans message.send et users.<id>.send. L’adaptateur télécharge et téléverse lui-même les fichiers, la correction de certificat de la 0.1.7 s’applique donc aussi aux téléversements.",
+        "it": "Invio di immagini, video, audio e file: sendTo() con image, video, audio o file (percorso locale o URL http(s), anche più allegati per messaggio, ad es. un’immagine di una telecamera della rete locale) e JSON in message.send e users.<id>.send. L’adattatore scarica e carica i file da sé, quindi la correzione del certificato della 0.1.7 vale anche per i caricamenti.",
+        "es": "Envío de imágenes, vídeos, audio y archivos: sendTo() con image, video, audio o file (ruta local o URL http(s), también varios por mensaje, p. ej. una imagen de una cámara de la red local) y JSON en message.send y users.<id>.send. El adaptador descarga y sube los archivos por sí mismo, por lo que la corrección del certificado de la 0.1.7 también se aplica a las subidas.",
+        "pl": "Wysyłanie obrazów, filmów, dźwięku i plików: sendTo() z image, video, audio lub file (ścieżka lokalna lub URL http(s), także kilka w jednej wiadomości, np. obraz z kamery w sieci lokalnej) oraz JSON w message.send i users.<id>.send. Adapter sam pobiera i przesyła pliki, więc poprawka certyfikatu z 0.1.7 obejmuje także przesyłanie.",
+        "uk": "Надсилання зображень, відео, аудіо та файлів: sendTo() з image, video, audio або file (локальний шлях або http(s)-URL, кілька вкладень в одному повідомленні, наприклад знімок камери з локальної мережі), а також JSON у message.send і users.<id>.send. Адаптер сам завантажує й вивантажує файли, тому виправлення сертифіката з 0.1.7 діє і для вивантаження.",
+        "zh-cn": "发送图片、视频、音频和文件：sendTo() 支持 image、video、audio 或 file（本地路径或 http(s) URL，每条消息可含多个附件，例如局域网摄像头快照），message.send 和 users.<id>.send 也支持 JSON。适配器自行下载并上传文件，因此 0.1.7 的证书修复同样适用于上传。"
+      },
       "0.1.7": {
         "en": "Fix: the adapter could not connect to the MAX API (\"fetch failed\") because Node.js does not trust the Russian Trusted Root CA used by platform-api2.max.ru. The adapter now ships this root certificate and trusts it for its own MAX API requests only; nothing has to be installed on the host. Connection errors are logged with their cause.",
         "de": "Fix: Der Adapter konnte keine Verbindung zur MAX-API herstellen („fetch failed“), weil Node.js der von platform-api2.max.ru verwendeten Russian Trusted Root CA nicht vertraut. Der Adapter bringt dieses Root-Zertifikat jetzt mit und vertraut ihm nur für seine eigenen Anfragen an die MAX-API; auf dem Host muss nichts installiert werden. Verbindungsfehler werden mit ihrer Ursache protokolliert.",
@@ -106,19 +119,6 @@
         "nl": "CI/CD workflow, dependabot, release-script toegevoegd; async unload gecorrigeerd; objecthierarchie; JSDoc",
         "uk": "Додано CI/CD workflow, dependabot, release-script; виправлено async unload; ієрархія об'єктів; JSDoc",
         "zh-cn": "添加CI/CD工作流、dependabot、release-script；修复async unload；对象层次结构；JSDoc"
-      },
-      "0.1.0": {
-        "en": "Initial release: MAX messenger bot integration for ioBroker",
-        "de": "Erstveröffentlichung: MAX Messenger Bot Integration für ioBroker",
-        "ru": "Первый релиз: интеграция бота мессенджера MAX для ioBroker",
-        "fr": "Version initiale: intégration du bot MAX Messenger pour ioBroker",
-        "it": "Versione iniziale: integrazione bot MAX Messenger per ioBroker",
-        "es": "Versión inicial: integración del bot MAX Messenger para ioBroker",
-        "pl": "Pierwsze wydanie: integracja bota MAX Messenger dla ioBroker",
-        "pt": "Versão inicial: integração do bot MAX Messenger para ioBroker",
-        "nl": "Eerste release: MAX Messenger bot integratie voor ioBroker",
-        "uk": "Перший реліз: інтеграція бота MAX Messenger для ioBroker",
-        "zh-cn": "初始版本：ioBroker 的 MAX Messenger 机器人集成"
       }
     },
     "authors": [
@@ -207,7 +207,7 @@
       "_id": "message.send",
       "type": "state",
       "common": {
-        "name": "Send message (format: userId|text, or plain text to all users)",
+        "name": "Send message (format: userId|text, plain text to all users, or JSON)",
         "type": "string",
         "role": "text",
         "read": false,

@@ -21,6 +21,7 @@ Analog to ioBroker.telegram — send notifications, receive commands, control de
 - Receive messages and commands from users
 - Dynamic user objects created on first contact
 - Access control via allowed user IDs list
+- Send images, videos, audio and files (local path or http(s) URL, e.g. a camera snapshot)
 - `sendTo()` support for use in scripts
 
 ## Installation
@@ -53,12 +54,31 @@ Node.js as well as all other adapters stay untouched.
 
 ## Usage
 
+In all examples `123456` stands for the ID of a MAX user. A user gets an ID as soon as they write to the bot or press
+**Start**: it appears as channel `max.0.users.<userId>` and in `max.0.message.userId`.
+
 ### Send via state
 
 Write to `max.0.message.send`:
 - `"123456|Hello World"` — send to user 123456 (only a numeric prefix is taken as a user ID)
 - `"Hello everyone"` — send to all known users (if `sendToAllUsers` enabled); a text such as
   `"Status|ok"` without a numeric prefix is sent as a broadcast as well
+- a JSON object, e.g. `{"userId": 123456, "text": "Door", "image": "/opt/iobroker/snapshot.jpg"}` — the same fields
+  as for `sendTo()` below; without `userId` it is a broadcast
+
+`max.0.users.<userId>.send` accepts plain text (sent as it is, `|` included) or the same JSON object without `userId`.
+
+Examples of state values:
+
+| State | Value | Effect |
+| --- | --- | --- |
+| `max.0.message.send` | `123456\|Washing machine is done` | text to user 123456 |
+| `max.0.message.send` | `Alarm armed` | text to all known users |
+| `max.0.message.send` | `{"userId": 123456, "text": "Front door", "image": "http://192.168.1.20/snapshot.jpg"}` | camera picture with caption to user 123456 |
+| `max.0.message.send` | `{"text": "Monthly report", "file": "/opt/iobroker/report.pdf"}` | file to all known users |
+| `max.0.users.123456.send` | `Hello` | text to this user |
+| `max.0.users.123456.send` | `{"image": ["/tmp/a.jpg", "/tmp/b.jpg"]}` | two pictures to this user |
+| `max.0.users.123456.send` | `{"video": "/tmp/clip.mp4", "text": "Motion in the garden"}` | video with caption to this user |
 
 ### Send via script
 
@@ -75,9 +95,32 @@ sendTo('max.0', 'send', { userId: '123456', text: 'Hello!' }, res => {
 });
 ```
 
+### Send images, videos, audio and files
+
+```javascript
+// a picture with a caption
+sendTo('max.0', 'send', { userId: 123456, text: 'Front door', image: '/opt/iobroker/iobroker-data/snapshot.jpg' });
+
+// straight from a camera in the local network (credentials in the URL are sent as basic auth)
+sendTo('max.0', 'send', { userId: 123456, image: 'http://user:password@192.168.1.20/snapshot.jpg' });
+
+// several attachments in one message
+sendTo('max.0', 'send', { userId: 123456, image: ['/tmp/a.jpg', '/tmp/b.jpg'], file: '/opt/iobroker/report.pdf' });
+
+// video and audio
+sendTo('max.0', 'send', { userId: 123456, video: '/tmp/clip.mp4' });
+sendTo('max.0', 'send', { userId: 123456, audio: '/tmp/doorbell.mp3' });
+```
+
+- `image`, `video`, `audio`, `file`: a local file path or an `http(s)` URL, a single string or a list; `text` is
+  optional when an attachment is given.
+- The adapter loads the file itself (also from devices in the local network that MAX cannot reach) and uploads it to
+  MAX; files above 100 MB are refused.
+- A broadcast uploads every attachment only once and sends it to all users.
+
 The callback receives `{ result: 'sent' }` for a single user, `{ result: 'sent', sent, failed, skipped }` for a
-broadcast, or `{ error: '...' }` when nothing was delivered (no text, bot not running, `sendToAllUsers` disabled,
-no known users, delivery failed).
+broadcast, or `{ error: '...' }` when nothing was delivered (no text or attachment, bot not running,
+`sendToAllUsers` disabled, no known users, attachment not readable or upload failed, delivery failed).
 
 Broadcasts only reach users who contacted the bot before and who are allowed by **Allowed User IDs**.
 
@@ -103,6 +146,12 @@ Known users are restored from the object tree after an adapter restart, so
 broadcasts keep working without waiting for every user to write again.
 
 ## Changelog
+
+### 0.1.8 (2026-10-12)
+- (sadam6752-tech) Send images, videos, audio and files: `sendTo()` with `image`, `video`, `audio`, `file` (local path
+  or http(s) URL, also several per message), and JSON in `message.send` and `users.<id>.send`. The adapter downloads
+  URLs itself (basic auth from the URL) and uploads the file to MAX with its own HTTP client, so the root certificate of
+  the MAX API applies to uploads as well; a broadcast uploads each attachment once
 
 ### 0.1.7 (2026-10-12)
 - (sadam6752-tech) Fix: the adapter could not connect to the MAX API (`fetch failed`) because Node.js does not trust
@@ -137,16 +186,6 @@ broadcasts keep working without waiting for every user to write again.
   has been removed again — the token is only declared as `protectedNative`, stored tokens keep working
 - (sadam6752-tech) Unusable tokens are detected on startup and reported, so the token can simply be
   entered again; new `lib/secrets.js` plus unit tests for the repair logic
-
-### 0.1.3 (2026-09-20)
-- (sadam6752-tech) Store the bot token as protected and encrypted native field (`protectedNative` / `encryptedNative`) so other adapters cannot read it
-- (sadam6752-tech) `.releaseconfig.json` migrated to the plugin array format
-- (sadam6752-tech) Added `prettier.config.mjs` and complete VSCode JSON schema mappings (io-package, package, jsonConfig/jsonCustom/jsonTab)
-- (sadam6752-tech) Removed obsolete devDependencies (mocha, eslint plugins, prettier, typescript-eslint), updated `@alcalzone/release-script` to 5.2.x and `@iobroker/testing` to 6.x
-- (sadam6752-tech) CI: added Node.js 26 to the test matrix and resynced `package-lock.json` so `npm ci` succeeds again
-- (sadam6752-tech) Added unit tests for the bot manager (`npm run test:js`), `npm test` now runs package and unit tests
-- (sadam6752-tech) README: removed direct npm installation instructions, added license and copyright section
-- (sadam6752-tech) 0.1.2 was never published to npm — its changes are included in 0.1.3
 
 Older changelog entries can be found in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

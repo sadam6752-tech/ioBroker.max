@@ -9,12 +9,13 @@ const utils = require('@iobroker/adapter-core');
 const BotManager = require('./lib/bot-manager');
 const { normalizeSecrets } = require('./lib/secrets');
 const { describeError } = require('./lib/max-fetch');
+const { collectMedia } = require('./lib/media');
 
 /** Delay before a failed bot start (network problem) is retried (ms) */
 const START_RETRY_DELAY = 60000;
 
 /** Name of the message.send state, also used in io-package.json */
-const SEND_STATE_NAME = 'Send message (format: userId|text, or plain text to all users)';
+const SEND_STATE_NAME = 'Send message (format: userId|text, plain text to all users, or JSON)';
 
 /** "userId|text" — only a numeric prefix is a user id, any other text is a broadcast */
 const DIRECT_MESSAGE_PATTERN = /^\s*(\d+)\s*\|([\s\S]*)$/;
@@ -31,6 +32,50 @@ function parseSendValue(value) {
         return { userId: match[1], text: match[2].trim() };
     }
     return { userId: null, text: value.trim() };
+}
+
+/**
+ * Build a send request from a sendTo() message or a JSON object:
+ * a string (broadcast) or `{ userId?, text?, image?, video?, audio?, file? }`
+ *
+ * @param {unknown} data - message
+ * @returns {{ userId: string | null, text: string, media: { type: string, source: string }[] }} request
+ */
+function parseSendRequest(data) {
+    if (typeof data === 'string') {
+        return { userId: null, text: data.trim(), media: [] };
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        return { userId: null, text: '', media: [] };
+    }
+    const obj = data;
+    const text = obj.text === null || obj.text === undefined ? '' : String(obj.text).trim();
+    const userId =
+        obj.userId === null || obj.userId === undefined || obj.userId === '' ? null : String(obj.userId).trim();
+    return { userId, text, media: collectMedia(obj) };
+}
+
+/**
+ * Build a send request from the value of a send state: a JSON object (see parseSendRequest),
+ * otherwise "userId|text" or plain text. Text that only looks like JSON is sent as text.
+ *
+ * @param {string} value - state value
+ * @returns {{ userId: string | null, text: string, media: { type: string, source: string }[] }} request
+ */
+function parseStateValue(value) {
+    const trimmed = value.trim();
+    if (trimmed.startsWith('{')) {
+        let data;
+        try {
+            data = JSON.parse(trimmed);
+        } catch {
+            data = undefined;
+        }
+        if (data && typeof data === 'object' && !Array.isArray(data)) {
+            return parseSendRequest(data);
+        }
+    }
+    return { ...parseSendValue(value), media: [] };
 }
 
 class MaxAdapter extends utils.Adapter {
@@ -185,42 +230,60 @@ class MaxAdapter extends utils.Adapter {
         if (!state || state.ack) {
             return;
         }
+        const value = state.val === null || state.val === undefined ? '' : String(state.val);
 
-        // message.send — format: "userId|text" or plain text (send to all)
+        // message.send — "userId|text", plain text (send to all) or JSON with attachments
         if (id === `${this.namespace}.message.send`) {
-            const { userId, text } = parseSendValue(
-                state.val === null || state.val === undefined ? '' : String(state.val),
-            );
-            if (text !== '') {
-                if (userId) {
-                    await this._sendMessage(userId, text);
-                } else {
-                    await this._sendToAll(text);
-                }
-            }
+            await this._sendFromState(value, null);
             await this.setStateAsync('message.send', '', true);
             return;
         }
 
-        // users.<id>.send — direct send to specific user
+        // users.<id>.send — text or JSON with attachments to this user
         const prefix = `${this.namespace}.users.`;
         if (id.startsWith(prefix) && id.endsWith('.send')) {
             const userId = id.substring(prefix.length, id.length - '.send'.length);
             if (userId === '' || userId.includes('.')) {
                 return;
             }
-            const text = state.val === null || state.val === undefined ? '' : String(state.val).trim();
-            if (text !== '') {
-                await this._sendMessage(userId, text);
-            }
+            await this._sendFromState(value, userId);
             await this.setStateAsync(`users.${userId}.send`, '', true);
         }
     }
 
     /**
+     * Send the value of a send state
+     *
+     * @param {string} value - state value
+     * @param {string | null} userId - fixed recipient (users.<id>.send) or null (message.send)
+     */
+    async _sendFromState(value, userId) {
+        let request;
+        try {
+            request = parseStateValue(value);
+        } catch (e) {
+            this.log.error(`Cannot send: ${e.message}`);
+            return;
+        }
+        if (userId !== null) {
+            if (request.media.length === 0 && !value.trim().startsWith('{')) {
+                // users.<id>.send takes the whole value as text, "|" included
+                request = { userId, text: value.trim(), media: [] };
+            } else {
+                request.userId = userId;
+            }
+        }
+        if (request.text === '' && request.media.length === 0) {
+            return;
+        }
+        await this._send(request);
+    }
+
+    /**
      * Handle sendTo() calls. Accepted forms of the message:
      * - a string: broadcast to all known users
-     * - `{ text, userId? }`: to one user, or to all users without `userId`
+     * - `{ text?, userId?, image?, video?, audio?, file? }`: to one user, or to all users without `userId`;
+     *   attachments are local paths or http(s) URLs, a single string or a list
      *
      * The callback receives `{ result: 'sent', ... }` or `{ error: '...' }`.
      *
@@ -241,25 +304,48 @@ class MaxAdapter extends utils.Adapter {
             return;
         }
 
-        const data = obj.message;
-        let text = '';
-        let userId = null;
-        if (typeof data === 'string') {
-            text = data;
-        } else if (data && typeof data === 'object') {
-            text = data.text === null || data.text === undefined ? '' : String(data.text);
-            userId = data.userId === null || data.userId === undefined || data.userId === '' ? null : data.userId;
+        let request;
+        try {
+            request = parseSendRequest(obj.message);
+        } catch (e) {
+            this.log.warn(`sendTo "send" ignored: ${e.message}`);
+            reply({ error: e.message });
+            return;
         }
-        text = text.trim();
-
-        if (text === '') {
-            this.log.warn('sendTo "send" without text ignored');
-            reply({ error: 'No text given' });
+        if (request.text === '' && request.media.length === 0) {
+            this.log.warn('sendTo "send" without text or attachment ignored');
+            reply({ error: 'No text or attachment given' });
             return;
         }
 
-        const response = userId !== null ? await this._sendMessage(String(userId), text) : await this._sendToAll(text);
-        reply(response);
+        reply(await this._send(request));
+    }
+
+    /**
+     * Upload the attachments once and send the message to one user or to all users
+     *
+     * @param {{ userId: string | null, text: string, media: { type: string, source: string }[] }} request - send request
+     * @returns {Promise<object>} outcome for sendTo callers
+     */
+    async _send(request) {
+        const { userId, text, media } = request;
+        if (!this.botManager) {
+            this.log.warn('Bot not initialized, cannot send message');
+            return { error: 'Bot not initialized' };
+        }
+        if (userId === null && !this.config.sendToAllUsers) {
+            return this._sendToAll(text);
+        }
+        let attachments = [];
+        if (media.length > 0) {
+            try {
+                attachments = await this.botManager.prepareAttachments(media);
+            } catch (e) {
+                this.log.error(`Failed to send message: ${describeError(e)}`);
+                return { error: describeError(e) };
+            }
+        }
+        return userId !== null ? this._sendMessage(userId, text, attachments) : this._sendToAll(text, attachments);
     }
 
     /**
@@ -289,15 +375,16 @@ class MaxAdapter extends utils.Adapter {
      *
      * @param {string} userId - User ID to send message to
      * @param {string} text - Message text
+     * @param {{ type: string, payload: object }[]} [attachments] - prepared attachments
      * @returns {Promise<{result: string} | {error: string}>} outcome for sendTo callers
      */
-    async _sendMessage(userId, text) {
+    async _sendMessage(userId, text, attachments = []) {
         if (!this.botManager) {
             this.log.warn('Bot not initialized, cannot send message');
             return { error: 'Bot not initialized' };
         }
         try {
-            await this.botManager.sendMessage(userId, text);
+            await this.botManager.sendMessage(userId, text, attachments);
             this.log.debug(`Message sent to user ${userId}`);
             return { result: 'sent' };
         } catch (e) {
@@ -310,9 +397,10 @@ class MaxAdapter extends utils.Adapter {
      * Send message to all known users
      *
      * @param {string} text - Message text to send to all users
+     * @param {{ type: string, payload: object }[]} [attachments] - prepared attachments
      * @returns {Promise<{result: string, sent: number, failed: number, skipped: number} | {error: string}>} outcome
      */
-    async _sendToAll(text) {
+    async _sendToAll(text, attachments = []) {
         if (!this.botManager) {
             this.log.warn('Bot not initialized, cannot send message');
             return { error: 'Bot not initialized' };
@@ -325,7 +413,7 @@ class MaxAdapter extends utils.Adapter {
             return { error: 'sendToAllUsers is disabled' };
         }
         try {
-            const summary = await this.botManager.sendToAll(text);
+            const summary = await this.botManager.sendToAll(text, attachments);
             this.log.debug(`Broadcast sent to ${summary.sent} user(s), ${summary.failed} failed`);
             if (summary.sent === 0) {
                 return { error: summary.failed > 0 ? 'Delivery failed for all users' : 'No known users', ...summary };
@@ -428,6 +516,8 @@ if (require.main !== module) {
     // exported for unit tests
     module.exports.MaxAdapter = MaxAdapter;
     module.exports.parseSendValue = parseSendValue;
+    module.exports.parseSendRequest = parseSendRequest;
+    module.exports.parseStateValue = parseStateValue;
 } else {
     new MaxAdapter();
 }
