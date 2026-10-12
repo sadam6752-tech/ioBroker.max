@@ -27,8 +27,10 @@ function createAdapterMock(config = {}) {
         objects,
         logs,
         createdUsers: [],
+        createdChats: [],
         viewRows: [],
         timers: [],
+        writes: [],
         log: {
             debug: (msg) => logs.debug.push(msg),
             info: (msg) => logs.info.push(msg),
@@ -41,6 +43,7 @@ function createAdapterMock(config = {}) {
          */
         async setStateAsync(id, value) {
             states.set(id, value);
+            this.writes.push(id);
         },
         /**
          * @param {string} id - object id (without namespace)
@@ -56,6 +59,14 @@ function createAdapterMock(config = {}) {
         async ensureUserObjects(userId, username) {
             objects.set(`users.${userId}`, { name: username });
             this.createdUsers.push(String(userId));
+        },
+        /**
+         * @param {string|number} chatId - chat id
+         * @param {string} [title] - chat title
+         */
+        async ensureChatObjects(chatId, title) {
+            objects.set(`chats.${chatId}`, { name: title });
+            this.createdChats.push({ chatId: String(chatId), title });
         },
         /**
          * @param {string} _type - object type
@@ -105,6 +116,10 @@ function createBotMock() {
          */
         async sendMessageToUser(userId, text, extra) {
             bot.sent.push({ userId, text });
+            bot.extras.push(extra);
+        },
+        async sendMessageToChat(chatId, text, extra) {
+            bot.sent.push({ chatId, text });
             bot.extras.push(extra);
         },
     };
@@ -222,6 +237,52 @@ describe('BotManager', () => {
             await flush();
             assert.deepEqual(adapter.createdUsers, ['123']);
             assert.equal(adapter.states.get('users.123.username'), 'Max');
+        });
+    });
+
+    describe('sendToChat', () => {
+        it('sends text and attachments to a group chat', async () => {
+            const bot = createBotMock();
+            manager.bot = bot;
+            await manager.sendToChat('-100', 'hi');
+            await manager.sendToChat(-100, '', [{ type: 'image', payload: { token: 't' } }]);
+            assert.deepEqual(bot.sent, [
+                { chatId: -100, text: 'hi' },
+                { chatId: -100, text: undefined },
+            ]);
+            assert.deepEqual(bot.extras[1], { attachments: [{ type: 'image', payload: { token: 't' } }] });
+        });
+
+        it('rejects an invalid chat id', async () => {
+            manager.bot = createBotMock();
+            await assert.rejects(() => manager.sendToChat('group', 'hi'), /Invalid chatId/);
+        });
+
+        it('throws when the bot was not started', async () => {
+            await assert.rejects(() => manager.sendToChat(-1, 'hi'), /Bot not started/);
+        });
+
+        it('restores known chats from the object tree', async () => {
+            adapter.viewRows = [{ id: 'max.0.chats.-100' }, { id: 'max.0.chats.-100.send' }];
+            await manager._loadKnownChats();
+            assert.deepEqual([...manager.knownChats], ['-100']);
+        });
+    });
+
+    describe('answerCallback', () => {
+        it('answers the last button press once', async () => {
+            const bot = createBotMock();
+            const answers = [];
+            bot.api.answerOnCallback = async (id, extra) => answers.push({ id, extra });
+            manager.bot = bot;
+            manager.lastCallbacks.set('5', 'cb-1');
+            await manager.answerCallback(5, 'Gate opens');
+            assert.deepEqual(answers, [{ id: 'cb-1', extra: { notification: 'Gate opens' } }]);
+            await assert.rejects(() => manager.answerCallback(5, 'again'), /No button press of user 5/);
+        });
+
+        it('throws when the bot was not started', async () => {
+            await assert.rejects(() => manager.answerCallback(5, 'x'), /Bot not started/);
         });
     });
 
@@ -424,6 +485,93 @@ describe('BotManager', () => {
             assert.equal(adapter.states.get('message.received'), 'hello');
             assert.equal(adapter.states.get('message.userId'), 5);
             assert.equal(adapter.states.get('users.5.last_message'), 'hello');
+        });
+
+        it('writes the sender before the text and publishes a Telegram-like request', async () => {
+            bot.emit('message_created', {
+                user: { user_id: 5, name: 'Alex' },
+                message: { body: { text: 'pool', mid: 'mid.1' } },
+            });
+            await flush();
+            const writes = adapter.writes;
+            assert.ok(writes.indexOf('message.userId') < writes.indexOf('message.received'));
+            assert.ok(writes.indexOf('communicate.requestUserId') < writes.indexOf('communicate.request'));
+            assert.ok(writes.indexOf('communicate.requestMessageId') < writes.indexOf('communicate.request'));
+            assert.equal(adapter.states.get('communicate.request'), '[Alex]pool');
+            assert.equal(adapter.states.get('communicate.requestUserId'), 5);
+            assert.equal(adapter.states.get('communicate.requestMessageId'), 'mid.1');
+        });
+
+        it('publishes a button press as request and remembers it for an answer', async () => {
+            bot.emit('message_callback', {
+                user: { user_id: 5, name: 'Alex' },
+                callback: { payload: 'gate_open', callback_id: 'cb-1' },
+            });
+            await flush();
+            assert.equal(adapter.states.get('communicate.request'), '[Alex]gate_open');
+            assert.equal(manager.lastCallbacks.get('5'), 'cb-1');
+        });
+
+        it('keeps group messages in chats.<chatId> and does not register group members as users', async () => {
+            bot.emit('message_created', {
+                user: { user_id: 5, name: 'Alex' },
+                message: { recipient: { chat_type: 'chat', chat_id: -100 }, body: { text: 'pool', mid: 'm1' } },
+            });
+            await flush();
+            assert.deepEqual(adapter.createdUsers, []);
+            assert.equal(manager.knownUsers.has('5'), false);
+            assert.deepEqual(adapter.createdChats, [{ chatId: '-100', title: undefined }]);
+            assert.equal(adapter.states.get('chats.-100.last_message'), 'pool');
+            assert.equal(adapter.states.get('chats.-100.last_user_id'), 5);
+            assert.equal(adapter.states.get('chats.-100.last_username'), 'Alex');
+            assert.equal(adapter.states.has('users.5.last_message'), false);
+            assert.equal(adapter.states.get('message.chatId'), -100);
+            assert.equal(adapter.states.get('communicate.requestChatId'), -100);
+            assert.equal(adapter.states.get('communicate.request'), '[Alex]pool');
+            const writes = adapter.writes;
+            assert.ok(writes.indexOf('message.chatId') < writes.indexOf('message.received'));
+            assert.ok(writes.indexOf('communicate.requestChatId') < writes.indexOf('communicate.request'));
+        });
+
+        it('marks private messages with chat id 0', async () => {
+            bot.emit('message_created', {
+                user: { user_id: 5, name: 'Alex' },
+                message: { recipient: { chat_type: 'dialog', chat_id: 777 }, body: { text: 'hi' } },
+            });
+            await flush();
+            assert.equal(adapter.states.get('message.chatId'), 0);
+            assert.equal(adapter.states.get('communicate.requestChatId'), 0);
+            assert.equal(adapter.states.get('users.5.last_message'), 'hi');
+            assert.deepEqual(adapter.createdChats, []);
+        });
+
+        it('applies the allowed list to group members', async () => {
+            adapter.config.allowedUsers = '1';
+            bot.emit('message_created', {
+                user: { user_id: 5 },
+                message: { recipient: { chat_type: 'chat', chat_id: -100 }, body: { text: 'hi' } },
+            });
+            await flush();
+            assert.equal(adapter.states.size, 0);
+        });
+
+        it('stores a button press in a group in chats.<chatId>.callback_data', async () => {
+            bot.emit('message_callback', {
+                user: { user_id: 5, name: 'Alex' },
+                callback: { payload: 'light', callback_id: 'cb' },
+                message: { recipient: { chat_type: 'chat', chat_id: -100 }, body: { mid: 'm2' } },
+            });
+            await flush();
+            assert.equal(adapter.states.get('chats.-100.callback_data'), 'light');
+            assert.equal(adapter.states.has('users.5.callback_data'), false);
+            assert.equal(adapter.states.get('communicate.requestChatId'), -100);
+        });
+
+        it('creates the chat objects with the title when the bot is added', async () => {
+            bot.emit('bot_added', { chatId: -100, chat: { title: 'Family' } });
+            await flush();
+            assert.deepEqual(adapter.createdChats, [{ chatId: '-100', title: 'Family' }]);
+            assert.equal(manager.knownChats.has('-100'), true);
         });
 
         it('handles message_callback', async () => {

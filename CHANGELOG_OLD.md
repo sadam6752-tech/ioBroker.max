@@ -1,5 +1,13 @@
 # Older Changelog
 
+### 0.1.4 (2026-09-21)
+- (sadam6752-tech) **HOTFIX for 0.1.3**: declaring the bot token as `protectedNative` / `encryptedNative`
+  made the js-controller transform previously stored plain text tokens into unusable data before the
+  adapter started, so the adapter could no longer authenticate against the MAX API. `encryptedNative`
+  has been removed again — the token is only declared as `protectedNative`, stored tokens keep working
+- (sadam6752-tech) Unusable tokens are detected on startup and reported, so the token can simply be
+  entered again; new `lib/secrets.js` plus unit tests for the repair logic
+
 ### 0.1.3 (2026-09-20)
 - (sadam6752-tech) Store the bot token as protected and encrypted native field (`protectedNative` / `encryptedNative`) so other adapters cannot read it
 - (sadam6752-tech) `.releaseconfig.json` migrated to the plugin array format

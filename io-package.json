@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "max",
-    "version": "0.1.8",
+    "version": "0.1.9",
     "titleLang": {
       "en": "MAX Messenger Bot",
       "de": "MAX Messenger Bot",
@@ -29,6 +29,19 @@
       "zh-cn": "通过 MAX Messenger 机器人发送和接收消息"
     },
     "news": {
+      "0.1.9": {
+        "en": "Answer commands like in the Telegram adapter: communicate.request ([Name]text, also button presses) with requestUserId/requestChatId, and communicate.response answers only the sender or its group chat. Buttons (menus) with keyboard in sendTo() and JSON. Group chats: chatId in sendTo(), -chatId|text in message.send (before it was sent to all users) and chats.<chatId>.send. Fix: message.userId is written before message.received.",
+        "de": "Befehle beantworten wie im Telegram-Adapter: communicate.request ([Name]Text, auch Tastendrücke) mit requestUserId/requestChatId; communicate.response antwortet nur dem Absender bzw. seinem Gruppenchat. Tasten (Menüs) mit keyboard in sendTo() und JSON. Gruppenchats: chatId in sendTo(), -chatId|Text in message.send (vorher ging das an alle Benutzer) und chats.<chatId>.send. Fix: message.userId wird vor message.received geschrieben.",
+        "ru": "Ответы на команды как в адаптере Telegram: communicate.request ([Имя]текст, а также нажатия кнопок) с requestUserId/requestChatId; communicate.response отвечает только отправителю или его групповому чату. Кнопки (меню) через keyboard в sendTo() и JSON. Групповые чаты: chatId в sendTo(), -chatId|текст в message.send (раньше это уходило всем пользователям) и chats.<chatId>.send. Исправлено: message.userId записывается до message.received.",
+        "pt": "Responder a comandos como no adaptador Telegram: communicate.request ([Nome]texto, também toques em botões) com requestUserId/requestChatId; communicate.response responde só ao remetente ou ao seu chat de grupo. Botões (menus) com keyboard em sendTo() e JSON. Chats de grupo: chatId em sendTo(), -chatId|texto em message.send (antes era enviado a todos os utilizadores) e chats.<chatId>.send. Correção: message.userId é escrito antes de message.received.",
+        "nl": "Opdrachten beantwoorden zoals in de Telegram-adapter: communicate.request ([Naam]tekst, ook knopdrukken) met requestUserId/requestChatId; communicate.response antwoordt alleen de afzender of diens groepschat. Knoppen (menu’s) met keyboard in sendTo() en JSON. Groepschats: chatId in sendTo(), -chatId|tekst in message.send (eerder ging dit naar alle gebruikers) en chats.<chatId>.send. Oplossing: message.userId wordt vóór message.received geschreven.",
+        "fr": "Répondre aux commandes comme dans l’adaptateur Telegram : communicate.request ([Nom]texte, aussi les appuis sur les boutons) avec requestUserId/requestChatId ; communicate.response ne répond qu’à l’expéditeur ou à son groupe. Boutons (menus) avec keyboard dans sendTo() et en JSON. Groupes : chatId dans sendTo(), -chatId|texte dans message.send (auparavant envoyé à tous les utilisateurs) et chats.<chatId>.send. Correction : message.userId est écrit avant message.received.",
+        "it": "Rispondere ai comandi come nell’adattatore Telegram: communicate.request ([Nome]testo, anche pressioni dei pulsanti) con requestUserId/requestChatId; communicate.response risponde solo al mittente o alla sua chat di gruppo. Pulsanti (menu) con keyboard in sendTo() e JSON. Chat di gruppo: chatId in sendTo(), -chatId|testo in message.send (prima veniva inviato a tutti gli utenti) e chats.<chatId>.send. Correzione: message.userId viene scritto prima di message.received.",
+        "es": "Responder a comandos como en el adaptador de Telegram: communicate.request ([Nombre]texto, también pulsaciones de botones) con requestUserId/requestChatId; communicate.response responde solo al remitente o a su chat de grupo. Botones (menús) con keyboard en sendTo() y JSON. Chats de grupo: chatId en sendTo(), -chatId|texto en message.send (antes se enviaba a todos los usuarios) y chats.<chatId>.send. Corrección: message.userId se escribe antes de message.received.",
+        "pl": "Odpowiadanie na polecenia jak w adapterze Telegram: communicate.request ([Nazwa]tekst, także naciśnięcia przycisków) z requestUserId/requestChatId; communicate.response odpowiada tylko nadawcy lub jego czatowi grupowemu. Przyciski (menu) przez keyboard w sendTo() i JSON. Czaty grupowe: chatId w sendTo(), -chatId|tekst w message.send (wcześniej trafiało to do wszystkich użytkowników) i chats.<chatId>.send. Poprawka: message.userId jest zapisywany przed message.received.",
+        "uk": "Відповіді на команди як в адаптері Telegram: communicate.request ([Ім’я]текст, також натискання кнопок) з requestUserId/requestChatId; communicate.response відповідає лише відправникові або його груповому чату. Кнопки (меню) через keyboard у sendTo() та JSON. Групові чати: chatId у sendTo(), -chatId|текст у message.send (раніше це надсилалося всім користувачам) і chats.<chatId>.send. Виправлено: message.userId записується до message.received.",
+        "zh-cn": "像 Telegram 适配器一样回复命令：communicate.request（[名称]文本，也包括按钮点击）以及 requestUserId/requestChatId；communicate.response 只回复发送者或其所在群聊。通过 sendTo() 和 JSON 中的 keyboard 添加按钮（菜单）。群聊：sendTo() 中的 chatId、message.send 中的 -chatId|文本（以前会发送给所有用户）以及 chats.<chatId>.send。修复：message.userId 在 message.received 之前写入。"
+      },
       "0.1.8": {
         "en": "Send images, videos, audio and files: sendTo() with image, video, audio or file (local path or http(s) URL, also several per message, e.g. a camera snapshot from the local network) and JSON in message.send and users.<id>.send. The adapter downloads and uploads the files itself, so the certificate fix of 0.1.7 applies to uploads as well.",
         "de": "Bilder, Videos, Audio und Dateien senden: sendTo() mit image, video, audio oder file (lokaler Pfad oder http(s)-URL, auch mehrere pro Nachricht, z. B. ein Kamerabild aus dem lokalen Netz) sowie JSON in message.send und users.<id>.send. Der Adapter lädt die Dateien selbst herunter und hoch, daher gilt der Zertifikats-Fix aus 0.1.7 auch für Uploads.",
@@ -106,19 +119,6 @@
         "nl": "Opruimen voor de repository checker: het token van de bot wordt opgeslagen als beschermd en versleuteld native veld, .releaseconfig.json gebruikt het plugin-arrayformaat, VSCode JSON-schema's en prettier-configuratie toegevoegd, verouderde devDependencies verwijderd, release-script bijgewerkt, Node.js 26 toegevoegd aan de CI-matrix. README: directe npm-installatieinstructies verwijderd, licentie- en copyrightsectie toegevoegd. Versie 0.1.2 is nooit op npm gepubliceerd - de wijzigingen zitten in 0.1.3. Voer het token opnieuw in als de adapter na de update geen verbinding maakt.",
         "uk": "Чищення для repository checker: токен бота зберігається як захищене та зашифроване нативне поле, .releaseconfig.json використовує формат масиву плагінів, додано схеми VSCode та конфігурацію prettier, видалено застарілі devDependencies, оновлено release-script, до CI-матриці додано Node.js 26. README: прибрано інструкцію встановлення через npm, додано розділ ліцензії та копірайту. Версія 0.1.2 ніколи не публікувалася на npm - її зміни входять до 0.1.3. Введіть токен бота знову, якщо після оновлення адаптер не підключається.",
         "zh-cn": "仓库检查清理：机器人令牌作为受保护并加密的 native 字段存储，.releaseconfig.json 使用插件数组格式，添加了 VSCode JSON 架构和 prettier 配置，删除了过时的 devDependencies，更新了 release-script，并在 CI 矩阵中添加了 Node.js 26。README：删除了通过 npm 直接安装的说明，添加了许可证和版权部分。版本 0.1.2 从未发布到 npm - 其更改包含在 0.1.3 中。如果更新后适配器无法连接，请重新输入机器人令牌。"
-      },
-      "0.1.1": {
-        "en": "Add CI/CD workflow, dependabot, release-script; fix async unload; fix object hierarchy; fix JSDoc",
-        "de": "CI/CD Workflow, Dependabot, Release-Script hinzugefuegt; async unload korrigiert; Objekthierarchie korrigiert; JSDoc korrigiert",
-        "ru": "Добавлены CI/CD workflow, dependabot, release-script; исправлен async unload; иерархия объектов; JSDoc",
-        "fr": "Ajout CI/CD workflow, dependabot, release-script; correction unload async; hierarchie objets; JSDoc",
-        "it": "Aggiunto CI/CD workflow, dependabot, release-script; corretto unload async; gerarchia oggetti; JSDoc",
-        "es": "Anadido CI/CD workflow, dependabot, release-script; corregido unload async; jerarquia objetos; JSDoc",
-        "pl": "Dodano CI/CD workflow, dependabot, release-script; poprawiono async unload; hierarchia obiektow; JSDoc",
-        "pt": "Adicionado CI/CD workflow, dependabot, release-script; corrigido unload async; hierarquia objetos; JSDoc",
-        "nl": "CI/CD workflow, dependabot, release-script toegevoegd; async unload gecorrigeerd; objecthierarchie; JSDoc",
-        "uk": "Додано CI/CD workflow, dependabot, release-script; виправлено async unload; ієрархія об'єктів; JSDoc",
-        "zh-cn": "添加CI/CD工作流、dependabot、release-script；修复async unload；对象层次结构；JSDoc"
       }
     },
     "authors": [
@@ -207,7 +207,7 @@
       "_id": "message.send",
       "type": "state",
       "common": {
-        "name": "Send message (format: userId|text, plain text to all users, or JSON)",
+        "name": "Send message (format: userId|text, -chatId|text, plain text to all users, or JSON)",
         "type": "string",
         "role": "text",
         "read": false,
@@ -239,6 +239,100 @@
         "read": true,
         "write": false,
         "def": 0
+      },
+      "native": {}
+    },
+    {
+      "_id": "message.chatId",
+      "type": "state",
+      "common": {
+        "name": "Group chat ID of the last message (0 = private dialog)",
+        "type": "number",
+        "role": "value",
+        "read": true,
+        "write": false,
+        "def": 0
+      },
+      "native": {}
+    },
+    {
+      "_id": "chats",
+      "type": "channel",
+      "common": {
+        "name": "Group chats"
+      },
+      "native": {}
+    },
+    {
+      "_id": "communicate",
+      "type": "channel",
+      "common": {
+        "name": "Requests and responses (like the Telegram adapter)"
+      },
+      "native": {}
+    },
+    {
+      "_id": "communicate.request",
+      "type": "state",
+      "common": {
+        "name": "Last request: [name]text or [name]button payload",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "communicate.requestChatId",
+      "type": "state",
+      "common": {
+        "name": "Group chat ID of the last request (0 = private dialog)",
+        "type": "number",
+        "role": "value",
+        "read": true,
+        "write": false,
+        "def": 0
+      },
+      "native": {}
+    },
+    {
+      "_id": "communicate.requestUserId",
+      "type": "state",
+      "common": {
+        "name": "User ID of the last request",
+        "type": "number",
+        "role": "value",
+        "read": true,
+        "write": false,
+        "def": 0
+      },
+      "native": {}
+    },
+    {
+      "_id": "communicate.requestMessageId",
+      "type": "state",
+      "common": {
+        "name": "Message ID of the last request",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "communicate.response",
+      "type": "state",
+      "common": {
+        "name": "Response to the user or group chat of the last request (text or JSON)",
+        "type": "string",
+        "role": "text",
+        "read": false,
+        "write": true,
+        "def": ""
       },
       "native": {}
     }

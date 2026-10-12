@@ -15,7 +15,14 @@ require.cache[corePath] = /** @type {any} */ ({
 });
 const mainPath = require.resolve('../main');
 delete require.cache[mainPath];
-const { MaxAdapter, parseSendValue, parseSendRequest, parseStateValue } = require('../main');
+const {
+    MaxAdapter,
+    parseSendValue,
+    parseSendRequest,
+    parseStateValue,
+    COMMUNICATE_OBJECTS,
+    GROUP_OBJECTS,
+} = require('../main');
 delete require.cache[mainPath];
 if (realCore) {
     require.cache[corePath] = realCore;
@@ -52,6 +59,9 @@ function createAdapter(config = {}) {
         async setStateAsync(id, val) {
             this.states.set(id, val);
         },
+        async getStateAsync(id) {
+            return this.states.has(id) ? { val: this.states.get(id), ack: true } : null;
+        },
         sendTo(to, command, message, callback) {
             this.replies.push({ to, command, message, callback });
         },
@@ -75,10 +85,13 @@ function createAdapter(config = {}) {
 function createManagerMock() {
     return {
         sent: [],
+        chats: [],
         broadcasts: [],
         prepared: [],
         prepareError: null,
         stopped: false,
+        answered: [],
+        answerError: null,
         sendError: null,
         summary: { sent: 2, failed: 0, skipped: 0 },
         async prepareAttachments(media) {
@@ -94,9 +107,18 @@ function createManagerMock() {
             }
             this.sent.push(attachments.length ? { userId, text, attachments } : { userId, text });
         },
+        async sendToChat(chatId, text, attachments = []) {
+            this.chats.push(attachments.length ? { chatId, text, attachments } : { chatId, text });
+        },
         async sendToAll(text, attachments = []) {
             this.broadcasts.push(attachments.length ? { text, attachments } : text);
             return this.summary;
+        },
+        async answerCallback(userId, text) {
+            if (this.answerError) {
+                throw this.answerError;
+            }
+            this.answered.push({ userId, text });
         },
         stop() {
             this.stopped = true;
@@ -109,6 +131,14 @@ describe('main.js', () => {
         it('splits "userId|text"', () => {
             assert.deepEqual(parseSendValue('123|Hello'), { userId: '123', text: 'Hello' });
             assert.deepEqual(parseSendValue(' 123 | Hello | World '), { userId: '123', text: 'Hello | World' });
+        });
+
+        it('sends a negative prefix to a group chat, never as broadcast', () => {
+            assert.deepEqual(parseSendValue('-76836900000088|Hello group'), {
+                userId: null,
+                chatId: '-76836900000088',
+                text: 'Hello group',
+            });
         });
 
         it('treats text with a non-numeric prefix as a broadcast', () => {
@@ -127,6 +157,30 @@ describe('main.js', () => {
                 text: 'Hi',
                 media: [{ type: 'image', source: '/a.jpg' }],
             });
+        });
+
+        it('reads a chat id', () => {
+            const request = parseSendRequest({ chatId: -100, text: 'Hi' });
+            assert.equal(request.chatId, '-100');
+            assert.equal(request.userId, null);
+        });
+
+        it('takes a negative user id as chat id', () => {
+            assert.equal(parseSendRequest({ userId: -100, text: 'Hi' }).chatId, '-100');
+        });
+
+        it('rejects userId and chatId together', () => {
+            assert.throws(() => parseSendRequest({ userId: 5, chatId: -100, text: 'Hi' }), /either userId or chatId/);
+        });
+
+        it('adds an inline keyboard', () => {
+            const request = parseSendRequest({ userId: 5, text: 'Menu', keyboard: [['Pool', 'Light']] });
+            assert.equal(request.keyboard.type, 'inline_keyboard');
+            assert.equal(request.keyboard.payload.buttons[0].length, 2);
+        });
+
+        it('rejects an invalid keyboard', () => {
+            assert.throws(() => parseSendRequest({ text: 'x', keyboard: 'Pool' }), /Invalid keyboard/);
         });
 
         it('treats a string as a broadcast', () => {
@@ -227,6 +281,51 @@ describe('main.js', () => {
             assert.equal(manager.sent.length, 0);
             assert.match(adapter.logs.error[0], /Invalid image/);
             assert.equal(adapter.states.get('message.send'), '');
+        });
+
+        it('answers the user of the last request via communicate.response', async () => {
+            adapter.states.set('communicate.requestUserId', 77);
+            await adapter.onStateChange('max.0.communicate.response', { val: 'Pool: 1.2 m', ack: false });
+            assert.deepEqual(manager.sent, [{ userId: '77', text: 'Pool: 1.2 m' }]);
+            assert.equal(adapter.states.get('communicate.response'), '');
+        });
+
+        it('accepts JSON with a keyboard in communicate.response', async () => {
+            adapter.states.set('communicate.requestUserId', 77);
+            await adapter.onStateChange('max.0.communicate.response', {
+                val: '{"text": "Menu", "keyboard": [["Pool"]]}',
+                ack: false,
+            });
+            assert.equal(manager.sent[0].userId, '77');
+            assert.equal(manager.sent[0].attachments[0].type, 'inline_keyboard');
+        });
+
+        it('answers in the group chat of the last request via communicate.response', async () => {
+            adapter.states.set('communicate.requestChatId', -100);
+            adapter.states.set('communicate.requestUserId', 77);
+            await adapter.onStateChange('max.0.communicate.response', { val: 'Pool: 1.2 m', ack: false });
+            assert.deepEqual(manager.chats, [{ chatId: '-100', text: 'Pool: 1.2 m' }]);
+            assert.deepEqual(manager.sent, []);
+        });
+
+        it('sends "-chatId|text" from message.send to the group chat', async () => {
+            await adapter.onStateChange('max.0.message.send', { val: '-100|Hello group', ack: false });
+            assert.deepEqual(manager.chats, [{ chatId: '-100', text: 'Hello group' }]);
+            assert.deepEqual(manager.broadcasts, []);
+        });
+
+        it('sends chats.<chatId>.send to that chat', async () => {
+            await adapter.onStateChange('max.0.chats.-100.send', { val: '{"text": "Door", "image": "/snap.jpg"}', ack: false });
+            assert.equal(manager.chats[0].chatId, '-100');
+            assert.equal(manager.chats[0].attachments[0].type, 'image');
+            assert.equal(adapter.states.get('chats.-100.send'), '');
+        });
+
+        it('ignores communicate.response before the first request', async () => {
+            await adapter.onStateChange('max.0.communicate.response', { val: 'Hi', ack: false });
+            assert.equal(manager.sent.length, 0);
+            assert.match(adapter.logs.warn[0], /no request yet/);
+            assert.equal(adapter.states.get('communicate.response'), '');
         });
 
         it('ignores states of other instances', async () => {
@@ -335,6 +434,48 @@ describe('main.js', () => {
             assert.deepEqual(adapter.replies[0].message, { error: 'sendToAllUsers is disabled' });
         });
 
+        it('sends a keyboard after the uploaded attachments', async () => {
+            await adapter.onMessage(msg({ userId: 9, text: 'Menu', image: '/a.jpg', keyboard: [['Pool']] }));
+            const types = manager.sent[0].attachments.map(a => a.type);
+            assert.deepEqual(types, ['image', 'inline_keyboard']);
+        });
+
+        it('sends a keyboard without uploads', async () => {
+            await adapter.onMessage(msg({ userId: 9, text: 'Menu', keyboard: [['Pool', { text: 'Gate', callback: 'g' }]] }));
+            assert.deepEqual(manager.prepared, []);
+            assert.equal(manager.sent[0].attachments[0].payload.buttons[0][1].type, 'callback');
+        });
+
+        it('sends to a group chat with sendTo', async () => {
+            await adapter.onMessage(msg({ chatId: -100, text: 'Hi', keyboard: [['Pool']] }));
+            assert.equal(manager.chats[0].chatId, '-100');
+            assert.equal(manager.chats[0].attachments[0].type, 'inline_keyboard');
+            assert.deepEqual(adapter.replies[0].message, { result: 'sent' });
+        });
+
+        it('sends to a group chat even when broadcasts are disabled', async () => {
+            adapter.config.sendToAllUsers = false;
+            await adapter.onMessage(msg({ chatId: -100, text: 'Hi' }));
+            assert.equal(manager.chats.length, 1);
+        });
+
+        it('answers a button press', async () => {
+            await adapter.onMessage(msg({ userId: 9, text: 'Gate opens' }, 'answerCallback'));
+            assert.deepEqual(manager.answered, [{ userId: '9', text: 'Gate opens' }]);
+            assert.deepEqual(adapter.replies[0].message, { result: 'answered' });
+        });
+
+        it('reports an answer without userId or text', async () => {
+            await adapter.onMessage(msg({ userId: 9 }, 'answerCallback'));
+            assert.deepEqual(adapter.replies[0].message, { error: 'answerCallback needs userId and text' });
+        });
+
+        it('reports a failed answer', async () => {
+            manager.answerError = new Error('No button press of user 9 to answer');
+            await adapter.onMessage(msg({ userId: 9, text: 'x' }, 'answerCallback'));
+            assert.match(adapter.replies[0].message.error, /No button press/);
+        });
+
         it('answers an unknown command', async () => {
             await adapter.onMessage(msg('x', 'foo'));
             assert.deepEqual(adapter.replies[0].message, { error: 'Unknown command: foo' });
@@ -437,9 +578,16 @@ describe('main.js', () => {
             assert.equal(jsonConfig.items.token.type, 'password');
         });
 
+        it('lists the communicate objects of the code as instance objects', () => {
+            for (const obj of [...GROUP_OBJECTS, ...COMMUNICATE_OBJECTS]) {
+                const listed = ioPackage.instanceObjects.find(o => o._id === obj._id);
+                assert.deepEqual(listed, obj, obj._id);
+            }
+        });
+
         it('describes message.send like the code does', () => {
             const obj = ioPackage.instanceObjects.find(o => o._id === 'message.send');
-            assert.equal(obj.common.name, 'Send message (format: userId|text, plain text to all users, or JSON)');
+            assert.equal(obj.common.name, 'Send message (format: userId|text, -chatId|text, plain text to all users, or JSON)');
         });
 
         it('has the same keys in all admin translations and no untranslated text', () => {

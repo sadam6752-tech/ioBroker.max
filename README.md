@@ -22,6 +22,10 @@ Analog to ioBroker.telegram — send notifications, receive commands, control de
 - Dynamic user objects created on first contact
 - Access control via allowed user IDs list
 - Send images, videos, audio and files (local path or http(s) URL, e.g. a camera snapshot)
+- Buttons below a message (menus like in the Telegram adapter)
+- Answer commands only to the user (or group chat) that sent them — `communicate.request` / `communicate.response`
+  as in the Telegram adapter
+- Group chats: send to a group the bot is a member of and receive its messages
 - `sendTo()` support for use in scripts
 
 ## Installation
@@ -54,7 +58,8 @@ Node.js as well as all other adapters stay untouched.
 
 ## Usage
 
-In all examples `123456` stands for the ID of a MAX user. A user gets an ID as soon as they write to the bot or press
+In all examples `123456` stands for the ID of a MAX user and `-987654321` for the ID of a group chat (group chat IDs
+are negative). A user gets an ID as soon as they write to the bot or press
 **Start**: it appears as channel `max.0.users.<userId>` and in `max.0.message.userId`.
 
 ### Send via state
@@ -124,6 +129,112 @@ broadcast, or `{ error: '...' }` when nothing was delivered (no text or attachme
 
 Broadcasts only reach users who contacted the bot before and who are allowed by **Allowed User IDs**.
 
+### Answer commands of a user (like the Telegram adapter)
+
+Every message (and every button press) is published like `telegram.0.communicate.request`:
+
+| State | Content |
+| --- | --- |
+| `max.0.communicate.request` | `[Name]text` — written **last**, trigger on this state |
+| `max.0.communicate.requestUserId` | user ID of the sender |
+| `max.0.communicate.requestChatId` | group chat ID, `0` for a private dialog |
+| `max.0.communicate.requestMessageId` | MAX message ID |
+| `max.0.communicate.response` | write a text or a JSON object here: it goes to the same group chat, or privately to the sender |
+
+The IDs are written before the request, so a script triggered by `communicate.request` reads the matching values. A
+script written for the Telegram adapter needs only small changes:
+
+```javascript
+on({ id: 'max.0.communicate.request', ack: true, change: 'any' }, obj => {
+    const value = String(obj.state.val);
+    const user = value.substring(value.indexOf('[') + 1, value.indexOf(']'));
+    const command = value.substring(value.indexOf(']') + 1).trim().toLowerCase();
+
+    if (command === '/start' || command === 'menu') {
+        setState('max.0.communicate.response', JSON.stringify({
+            text: `Hello ${user}, what do you need?`,
+            keyboard: [['Pool', 'Temperature'], ['Lights off']],
+        }));
+    } else if (command === 'pool') {
+        const level = getState('0_userdata.0.pool.level').val;
+        const volume = getState('0_userdata.0.pool.volume').val;
+        setState('max.0.communicate.response', `Pool level: ${level} m, ${volume} m³`);
+    }
+});
+```
+
+The same with `sendTo()` and the per-user state — the answer goes only to the sender:
+
+```javascript
+on({ id: /^max\.0\.users\.\d+\.last_message$/, ack: true, change: 'any' }, obj => {
+    const userId = obj.id.split('.')[3];
+    if (String(obj.state.val).trim().toLowerCase() === 'pool') {
+        sendTo('max.0', 'send', { userId, text: `Pool level: ${getState('0_userdata.0.pool.level').val} m` });
+    }
+});
+```
+
+### Buttons (menu)
+
+`keyboard` adds buttons below a message: a list of rows, each row a list of buttons (at most 7 per row, 30 rows,
+210 buttons).
+
+| Button | Effect when pressed |
+| --- | --- |
+| `'Pool'` | sends `Pool` as a message of the user — handled like a typed command |
+| `{ text: 'Open gate', callback: 'gate_open' }` | the payload `gate_open` arrives in `communicate.request` (`[Name]gate_open`) and `users.<userId>.callback_data` |
+| `{ text: 'Website', url: 'https://…' }` | opens the link |
+
+```javascript
+sendTo('max.0', 'send', {
+    userId: 123456,
+    text: 'Garden',
+    keyboard: [
+        ['Pool', 'Temperature'],
+        [{ text: 'Open gate', callback: 'gate_open' }, { text: 'Camera', url: 'http://192.168.1.20/' }],
+    ],
+});
+
+// confirm a callback button with a short notification
+on({ id: 'max.0.communicate.request', ack: true, change: 'any' }, obj => {
+    if (String(obj.state.val).endsWith(']gate_open')) {
+        const userId = getState('max.0.communicate.requestUserId').val;
+        setState('0_userdata.0.gate', true);
+        sendTo('max.0', 'answerCallback', { userId, text: 'Gate opens' });
+    }
+});
+```
+
+The keyboard also works in JSON state values, e.g. `max.0.users.123456.send` =
+`{"text": "Menu", "keyboard": [["Pool", "Temperature"]]}`.
+
+### Group chats
+
+Add the bot to a group chat in MAX. The adapter creates the channel `max.0.chats.<chatId>` (named after the chat) when
+the bot is added or the first message arrives. Depending on the group settings the bot may need to be an administrator
+to receive all messages.
+
+| State | Content |
+| --- | --- |
+| `max.0.chats.<chatId>.last_message` | last message in the chat |
+| `max.0.chats.<chatId>.last_user_id` / `last_username` | sender of the last message |
+| `max.0.chats.<chatId>.callback_data` | last button payload pressed in the chat |
+| `max.0.chats.<chatId>.send` | text or JSON (attachments, keyboard) to send to the chat |
+
+Messages in a group also set `max.0.message.chatId` and `max.0.communicate.requestChatId`, so
+`max.0.communicate.response` answers in the group. Group members do not become entries below `max.0.users` and do not
+receive broadcasts.
+
+```javascript
+// to a group chat
+sendTo('max.0', 'send', { chatId: -987654321, text: 'Washing machine is done' });
+sendTo('max.0', 'send', { chatId: -987654321, image: 'http://192.168.1.20/snapshot.jpg', text: 'Doorbell' });
+```
+
+Via state: `max.0.message.send` = `-987654321|Washing machine is done` (a negative ID before `|` is always a group
+chat, never a broadcast), or `max.0.chats.-987654321.send` = `Washing machine is done`. A negative `userId` in
+`sendTo()` is taken as `chatId` as well.
+
 ### Connection state
 
 `max.0.info.connection` is `true` while the adapter receives updates from the MAX API. A lost connection is logged
@@ -131,7 +242,9 @@ as a warning and retried automatically; a token that the MAX API rejects is repo
 
 ### Receive messages
 
-Subscribe to `max.0.message.received` and `max.0.message.userId`.
+Subscribe to `max.0.message.received`; `max.0.message.userId` (sender) and `max.0.message.chatId` (group chat, `0`
+for a private dialog) are written before it. To answer the sender, prefer `max.0.communicate.request` or
+`max.0.users.<userId>.last_message` (see above).
 
 ### Per-user states
 
@@ -146,6 +259,18 @@ Known users are restored from the object tree after an adapter restart, so
 broadcasts keep working without waiting for every user to write again.
 
 ## Changelog
+
+### 0.1.9 (2026-10-12)
+- (sadam6752-tech) Requests like the Telegram adapter: `communicate.request` (`[Name]text`, also button presses),
+  `communicate.requestUserId`, `communicate.requestChatId`, `communicate.requestMessageId`; `communicate.response`
+  answers the sender (or the group chat) of the last request
+- (sadam6752-tech) Buttons below a message: `keyboard` in `sendTo()` and in JSON state values (message, callback and
+  link buttons); `sendTo('max.0', 'answerCallback', { userId, text })` confirms a button press
+- (sadam6752-tech) Group chats: `chatId` in `sendTo()` and JSON, `-chatId|text` in `message.send`, states
+  `chats.<chatId>.*` with `send`; group messages set `message.chatId`. Before, `-chatId|text` was sent as a broadcast
+  to all users
+- (sadam6752-tech) Fix: `message.userId` is written before `message.received`, so a script triggered by the text reads
+  the right sender
 
 ### 0.1.8 (2026-10-12)
 - (sadam6752-tech) Send images, videos, audio and files: `sendTo()` with `image`, `video`, `audio`, `file` (local path
@@ -178,14 +303,6 @@ broadcasts keep working without waiting for every user to write again.
   is in the trust store), plus comments API, sessions/conversation middleware and retry fixes
 - (sadam6752-tech) Move the changelog entries for 0.1.0 and 0.1.1 to CHANGELOG_OLD.md (checker W6020)
 - (sadam6752-tech) Update `@alcalzone/release-script-plugin-license` to 5.2.2 (checker S0064)
-
-### 0.1.4 (2026-09-21)
-- (sadam6752-tech) **HOTFIX for 0.1.3**: declaring the bot token as `protectedNative` / `encryptedNative`
-  made the js-controller transform previously stored plain text tokens into unusable data before the
-  adapter started, so the adapter could no longer authenticate against the MAX API. `encryptedNative`
-  has been removed again — the token is only declared as `protectedNative`, stored tokens keep working
-- (sadam6752-tech) Unusable tokens are detected on startup and reported, so the token can simply be
-  entered again; new `lib/secrets.js` plus unit tests for the repair logic
 
 Older changelog entries can be found in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
