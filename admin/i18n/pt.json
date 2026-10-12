@@ -6,7 +6,6 @@
     "label_logUnknownCommands": "Registar comandos desconhecidos",
     "label_sendToAllUsers": "Enviar para todos os utilizadores conhecidos",
     "label_token": "Token do bot MAX",
-    "max": "MAX Messenger Bot",
     "tooltip_allowedUsers": "Deixar vazio para permitir todos os utilizadores. Exemplo: 123456,789012",
     "tooltip_logUnknownCommands": "Registar mensagens de utilizadores fora da lista permitida",
     "tooltip_sendToAllUsers": "Se ativado, message.send sem prefixo userId envia para todos os utilizadores conhecidos",

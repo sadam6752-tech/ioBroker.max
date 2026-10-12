@@ -6,7 +6,6 @@
     "label_logUnknownCommands": "记录未知命令",
     "label_sendToAllUsers": "发送给所有已知用户",
     "label_token": "MAX 机器人令牌",
-    "max": "MAX 消息机器人",
     "tooltip_allowedUsers": "留空以允许所有用户。示例：123456,789012",
     "tooltip_logUnknownCommands": "记录不在允许列表中的用户的消息",
     "tooltip_sendToAllUsers": "如果启用，没有 userId 前缀的 message.send 将发送给所有已知用户",

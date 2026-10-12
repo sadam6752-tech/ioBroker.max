@@ -13,7 +13,8 @@
       "xl": 12
     },
     "token": {
-      "type": "text",
+      "type": "password",
+      "visible": true,
       "label": "label_token",
       "xs": 12,
       "sm": 12,

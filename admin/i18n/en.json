@@ -6,7 +6,6 @@
     "label_logUnknownCommands": "Log unknown commands",
     "label_sendToAllUsers": "Send to all known users",
     "label_token": "MAX Bot Token",
-    "max": "MAX Messenger Bot",
     "tooltip_allowedUsers": "Leave empty to allow all users. Example: 123456,789012",
     "tooltip_logUnknownCommands": "Log messages from users not in allowed list",
     "tooltip_sendToAllUsers": "If enabled, message.send without userId prefix sends to all known users",

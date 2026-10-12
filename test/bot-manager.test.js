@@ -28,6 +28,7 @@ function createAdapterMock(config = {}) {
         logs,
         createdUsers: [],
         viewRows: [],
+        timers: [],
         log: {
             debug: (msg) => logs.debug.push(msg),
             info: (msg) => logs.info.push(msg),
@@ -64,6 +65,24 @@ function createAdapterMock(config = {}) {
          */
         async getObjectViewAsync(_type, _subType, options) {
             return { rows: this.viewRows.filter((row) => row.id >= options.startkey && row.id < options.endkey) };
+        },
+        /**
+         * Timers are only recorded; tests run them by hand
+         *
+         * @param {() => void} fn - callback
+         * @param {number} ms - delay
+         * @returns {object} timer handle
+         */
+        setTimeout(fn, ms) {
+            const timer = { fn, ms, cleared: false };
+            this.timers.push(timer);
+            return timer;
+        },
+        /**
+         * @param {object} timer - timer handle
+         */
+        clearTimeout(timer) {
+            timer.cleared = true;
         },
     };
 }
@@ -178,12 +197,29 @@ describe('BotManager', () => {
             await assert.rejects(() => manager.sendMessage('abc', 'hi'), /Invalid userId/);
         });
 
-        it('sends the message and remembers the user', async () => {
+        it('throws for an empty or fractional user id', async () => {
+            manager.bot = createBotMock();
+            await assert.rejects(() => manager.sendMessage('', 'hi'), /Invalid userId/);
+            await assert.rejects(() => manager.sendMessage('1.5', 'hi'), /Invalid userId/);
+        });
+
+        it('sends the message without registering the user as known', async () => {
             const bot = createBotMock();
             manager.bot = bot;
             await manager.sendMessage('123', 'hi');
             assert.deepEqual(bot.sent, [{ userId: 123, text: 'hi' }]);
-            assert.equal(manager.knownUsers.has('123'), true);
+            assert.equal(manager.knownUsers.has('123'), false);
+        });
+
+        it('creates the user objects when a user contacted only by sendMessage writes later', async () => {
+            const bot = createBotMock();
+            manager.bot = bot;
+            manager.setupHandlers();
+            await manager.sendMessage('123', 'hi');
+            bot.emit('message_created', { user: { user_id: 123, name: 'Max' }, message: { body: { text: 'hello' } } });
+            await flush();
+            assert.deepEqual(adapter.createdUsers, ['123']);
+            assert.equal(adapter.states.get('users.123.username'), 'Max');
         });
     });
 
@@ -203,7 +239,8 @@ describe('BotManager', () => {
             manager.bot = bot;
             manager.knownUsers.add('1');
             manager.knownUsers.add('2');
-            await manager.sendToAll('broadcast');
+            const summary = await manager.sendToAll('broadcast');
+            assert.deepEqual(summary, { sent: 2, failed: 0, skipped: 0 });
             assert.deepEqual(
                 bot.sent.map((entry) => entry.userId).sort(),
                 [1, 2],
@@ -225,8 +262,31 @@ describe('BotManager', () => {
             manager.bot = bot;
             manager.knownUsers.add('1');
             manager.knownUsers.add('2');
-            await manager.sendToAll('broadcast');
+            const summary = await manager.sendToAll('broadcast');
+            assert.deepEqual(summary, { sent: 1, failed: 1, skipped: 0 });
             assert.deepEqual(bot.sent, [{ userId: 2, text: 'broadcast' }]);
+            assert.equal(adapter.logs.warn.length, 1);
+        });
+
+        it('skips known users that are no longer allowed', async () => {
+            const bot = createBotMock();
+            manager.bot = bot;
+            adapter.config.allowedUsers = '2';
+            manager.knownUsers.add('1');
+            manager.knownUsers.add('2');
+            const summary = await manager.sendToAll('broadcast');
+            assert.deepEqual(summary, { sent: 1, failed: 0, skipped: 1 });
+            assert.deepEqual(bot.sent, [{ userId: 2, text: 'broadcast' }]);
+        });
+
+        it('warns when no known user is allowed', async () => {
+            const bot = createBotMock();
+            manager.bot = bot;
+            adapter.config.allowedUsers = '5';
+            manager.knownUsers.add('1');
+            const summary = await manager.sendToAll('broadcast');
+            assert.deepEqual(summary, { sent: 0, failed: 0, skipped: 1 });
+            assert.equal(bot.sent.length, 0);
             assert.equal(adapter.logs.warn.length, 1);
         });
     });
@@ -376,4 +436,173 @@ describe('BotManager', () => {
     });
 });
 
+describe('BotManager lifecycle', () => {
+    let adapter;
+    let manager;
+    let bots;
 
+    /**
+     * Fake bot whose start() behaves like the library: it only resolves when polling ends
+     *
+     * @returns {object} fake bot with polling controls
+     */
+    function createPollingBot() {
+        const bot = createBotMock();
+        bot.startCalls = [];
+        bot.pollingStopped = false;
+        bot.infoError = null;
+        bot.api.getMyInfo = async () => {
+            if (bot.infoError) {
+                throw bot.infoError;
+            }
+            return { user_id: 1, username: 'test_bot' };
+        };
+        bot.updatesResult = { updates: [], marker: 1 };
+        bot.updatesError = null;
+        bot.api.getUpdates = async () => {
+            if (bot.updatesError) {
+                throw bot.updatesError;
+            }
+            return bot.updatesResult;
+        };
+        bot.start = (config) => {
+            const call = { config };
+            call.promise = new Promise((resolve, reject) => {
+                call.resolve = resolve;
+                call.reject = reject;
+            });
+            bot.startCalls.push(call);
+            return call.promise;
+        };
+        bot.stopPolling = () => {
+            bot.pollingStopped = true;
+            const last = bot.startCalls[bot.startCalls.length - 1];
+            if (last) {
+                last.resolve();
+            }
+        };
+        return bot;
+    }
+
+    beforeEach(() => {
+        adapter = createAdapterMock();
+        bots = [];
+        manager = new BotManager(adapter, () => {
+            const bot = createPollingBot();
+            bots.push(bot);
+            return bot;
+        });
+    });
+
+    it('resolves start() while long polling keeps running and sets info.connection', async () => {
+        await manager.start('token');
+        const bot = bots[0];
+        assert.equal(bot.startCalls.length, 1);
+        assert.deepEqual(bot.startCalls[0].config, { mode: 'polling', options: { retry: false } });
+        assert.deepEqual(bot.botInfo, { user_id: 1, username: 'test_bot' });
+        assert.equal(adapter.states.get('info.connection'), true);
+        assert.ok(adapter.logs.info.some((msg) => /MAX bot started successfully/.test(msg)));
+    });
+
+    it('rejects start() when the token is not accepted and does not poll', async () => {
+        manager.createBot = () => {
+            const bot = createPollingBot();
+            bot.infoError = Object.assign(new Error('Unauthorized'), { status: 401 });
+            bots.push(bot);
+            return bot;
+        };
+        await assert.rejects(() => manager.start('bad'), /Unauthorized/);
+        assert.equal(bots[0].startCalls.length, 0);
+        assert.equal(adapter.states.has('info.connection'), false);
+    });
+
+    it('does not start polling when stopped while the token is verified', async () => {
+        let release;
+        manager.createBot = () => {
+            const bot = createPollingBot();
+            bot.api.getMyInfo = () => new Promise((resolve) => (release = resolve));
+            bots.push(bot);
+            return bot;
+        };
+        const starting = manager.start('token');
+        await flush();
+        manager.stop();
+        release({ user_id: 1 });
+        await starting;
+        assert.equal(bots[0].startCalls.length, 0);
+        assert.equal(adapter.states.has('info.connection'), false);
+    });
+
+    it('does not touch info.connection after a regular stop', async () => {
+        await manager.start('token');
+        adapter.states.clear();
+        manager.stop();
+        await flush();
+        assert.equal(bots[0].pollingStopped, true);
+        assert.equal(adapter.states.has('info.connection'), false);
+        assert.equal(adapter.timers.length, 0);
+        assert.equal(adapter.logs.warn.length, 0);
+    });
+
+    it('restarts polling with back-off when it ends unexpectedly', async () => {
+        await manager.start('token');
+        const bot = bots[0];
+        bot.startCalls[0].resolve();
+        await flush();
+        assert.equal(adapter.states.get('info.connection'), false);
+        assert.equal(adapter.timers.length, 1);
+        assert.equal(adapter.timers[0].ms, 5000);
+        assert.match(adapter.logs.warn[0], /long polling stopped unexpectedly/);
+
+        adapter.timers[0].fn();
+        assert.equal(bot.startCalls.length, 2);
+
+        bot.startCalls[1].reject(new Error('boom'));
+        await flush();
+        assert.equal(adapter.timers[1].ms, 10000);
+        assert.match(adapter.logs.warn[adapter.logs.warn.length - 1], /boom/);
+    });
+
+    it('cancels a pending restart on stop', async () => {
+        await manager.start('token');
+        bots[0].startCalls[0].resolve();
+        await flush();
+        manager.stop();
+        assert.equal(adapter.timers[0].cleared, true);
+        adapter.timers[0].fn();
+        assert.equal(bots[0].startCalls.length, 1);
+    });
+
+    it('reports a lost and a restored connection from the polling requests', async () => {
+        await manager.start('token');
+        const bot = bots[0];
+
+        bot.updatesError = new TypeError('fetch failed');
+        await assert.rejects(() => bot.api.getUpdates([], {}), /fetch failed/);
+        assert.equal(adapter.states.get('info.connection'), false);
+        assert.ok(adapter.logs.warn.some((msg) => /Connection to the MAX API lost: fetch failed/.test(msg)));
+
+        bot.updatesError = null;
+        await bot.api.getUpdates([], {});
+        assert.equal(adapter.states.get('info.connection'), true);
+    });
+
+    it('ignores aborted polling requests', async () => {
+        await manager.start('token');
+        const bot = bots[0];
+        const abort = new Error('aborted');
+        abort.name = 'AbortError';
+        bot.updatesError = abort;
+        await assert.rejects(() => bot.api.getUpdates([], {}));
+        assert.equal(adapter.states.get('info.connection'), true);
+    });
+
+    it('replaces a running bot when start() is called again', async () => {
+        await manager.start('token');
+        await manager.start('token');
+        assert.equal(bots.length, 2);
+        assert.equal(bots[0].pollingStopped, true);
+        assert.equal(manager.bot, bots[1]);
+        assert.equal(adapter.states.get('info.connection'), true);
+    });
+});

@@ -1,6 +1,14 @@
+![Logo](admin/max.png)
+
 # ioBroker.max
 
-![Logo](admin/max.png)
+[![NPM version](https://img.shields.io/npm/v/iobroker.max.svg)](https://www.npmjs.com/package/iobroker.max)
+[![Downloads](https://img.shields.io/npm/dm/iobroker.max.svg)](https://www.npmjs.com/package/iobroker.max)
+[![License](https://img.shields.io/github/license/sadam6752-tech/ioBroker.max.svg)](LICENSE)
+
+[![NPM](https://nodei.co/npm/iobroker.max.png?downloads=true)](https://nodei.co/npm/iobroker.max/)
+
+![Test and Release](https://github.com/sadam6752-tech/ioBroker.max/workflows/Test%20and%20Release/badge.svg)
 
 **ioBroker adapter for MAX messenger bot integration**
 
@@ -38,8 +46,9 @@ plain text tokens into unusable data (the legacy decryption is a XOR without a f
 ### Send via state
 
 Write to `max.0.message.send`:
-- `"123456|Hello World"` — send to user 123456
-- `"Hello everyone"` — send to all known users (if `sendToAllUsers` enabled)
+- `"123456|Hello World"` — send to user 123456 (only a numeric prefix is taken as a user ID)
+- `"Hello everyone"` — send to all known users (if `sendToAllUsers` enabled); a text such as
+  `"Status|ok"` without a numeric prefix is sent as a broadcast as well
 
 ### Send via script
 
@@ -47,7 +56,25 @@ Write to `max.0.message.send`:
 sendTo('max.0', 'send', { userId: '123456', text: 'Hello!' });
 // or to all:
 sendTo('max.0', 'send', 'Hello everyone!');
+
+// with an answer
+sendTo('max.0', 'send', { userId: '123456', text: 'Hello!' }, res => {
+    if (res.error) {
+        log(`MAX: ${res.error}`, 'warn');
+    }
+});
 ```
+
+The callback receives `{ result: 'sent' }` for a single user, `{ result: 'sent', sent, failed, skipped }` for a
+broadcast, or `{ error: '...' }` when nothing was delivered (no text, bot not running, `sendToAllUsers` disabled,
+no known users, delivery failed).
+
+Broadcasts only reach users who contacted the bot before and who are allowed by **Allowed User IDs**.
+
+### Connection state
+
+`max.0.info.connection` is `true` while the adapter receives updates from the MAX API. A lost connection is logged
+as a warning and retried automatically; a token that the MAX API rejects is reported as an error and not retried.
 
 ### Receive messages
 
@@ -66,6 +93,19 @@ Known users are restored from the object tree after an adapter restart, so
 broadcasts keep working without waiting for every user to write again.
 
 ## Changelog
+
+### 0.1.6 (2026-10-12)
+- (sadam6752-tech) Fix: `info.connection` is now set once the token has been verified; before, the adapter waited for
+  the long polling loop to end and the connection stayed red/yellow. Lost connections are logged and polling is restarted
+  with back-off; a start that failed because of the network is retried every 60 s
+- (sadam6752-tech) Fix: `sendTo()` reaches the adapter (`common.messagebox` was missing); the callback reports errors
+  instead of always answering `sent`, and calls without text are answered instead of timing out
+- (sadam6752-tech) Fix: sending to a user who never wrote to the bot no longer prevents the creation of their objects
+- (sadam6752-tech) Broadcasts skip known users that are no longer in the allowed list
+- (sadam6752-tech) The bot token is shown as a password field in the admin; unused and untranslated admin texts fixed
+- (sadam6752-tech) `message.send`: only a numeric prefix before `|` is taken as user ID; unit tests for `main.js`
+- (sadam6752-tech) Update `@maxhub/max-bot-api` to 1.0.2 (drops `getAllChats`, which the adapter does not use; tolerates
+  `message_created` updates without a message)
 
 ### 0.1.5 (2026-09-21)
 - (sadam6752-tech) Update `@maxhub/max-bot-api` to 0.3.x - the library now talks to the MAX API host
@@ -91,13 +131,6 @@ broadcasts keep working without waiting for every user to write again.
 - (sadam6752-tech) Added unit tests for the bot manager (`npm run test:js`), `npm test` now runs package and unit tests
 - (sadam6752-tech) README: removed direct npm installation instructions, added license and copyright section
 - (sadam6752-tech) 0.1.2 was never published to npm — its changes are included in 0.1.3
-
-### 0.1.2 (2026-09-20)
-- (sadam6752-tech) Honor the `sendToAllUsers` setting: broadcasts are only sent when it is enabled
-- (sadam6752-tech) Apply the allowed-users filter to all incoming events (`bot_started`, `message_created`, `message_callback`)
-- (sadam6752-tech) Reload known users on adapter restart so broadcasts keep working
-- (sadam6752-tech) Use `setStateAsync`/`extendObjectAsync`/`subscribeStatesAsync` consistently
-- (sadam6752-tech) Add CI workflow, dependabot config, `tsconfig.json` and VSCode JSON schemas
 
 Older changelog entries can be found in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
