@@ -153,7 +153,8 @@ function parseSendValue(value) {
 
 /**
  * Build a send request from a sendTo() message or a JSON object:
- * a string (broadcast) or `{ userId? | chatId?, text?, image?, video?, audio?, file?, keyboard? }`
+ * a string (broadcast) or `{ userId? | chatId?, text?, image?, video?, audio?, file?, keyboard?, notify? }`;
+ * `notify: false` (or `disable_notification: true` as in the Telegram adapter) sends without notification
  *
  * @param {unknown} data - message
  * @returns {{ userId: string | null, text: string, media: { type: string, source: string }[], keyboard?: object }} request
@@ -172,6 +173,9 @@ function parseSendRequest(data) {
     const chatId =
         obj.chatId === null || obj.chatId === undefined || obj.chatId === '' ? null : String(obj.chatId).trim();
     const request = normalizeTarget({ userId, chatId, text, media: collectMedia(obj) });
+    if (obj.notify === false || obj.disable_notification === true) {
+        request.notify = false;
+    }
     const keyboard = buildKeyboard(obj.keyboard);
     if (keyboard) {
         request.keyboard = keyboard;
@@ -513,6 +517,7 @@ class MaxAdapter extends utils.Adapter {
      */
     async _send(request) {
         const { userId, chatId, text, media, keyboard } = request;
+        const options = request.notify === false ? { notify: false } : {};
         if (!this.botManager) {
             this.log.warn('Bot not initialized, cannot send message');
             return { error: 'Bot not initialized' };
@@ -533,9 +538,11 @@ class MaxAdapter extends utils.Adapter {
             attachments = [...attachments, keyboard];
         }
         if (chatId) {
-            return this._sendToChat(chatId, text, attachments);
+            return this._sendToChat(chatId, text, attachments, options);
         }
-        return userId !== null ? this._sendMessage(userId, text, attachments) : this._sendToAll(text, attachments);
+        return userId !== null
+            ? this._sendMessage(userId, text, attachments, options)
+            : this._sendToAll(text, attachments, options);
     }
 
     /**
@@ -566,15 +573,16 @@ class MaxAdapter extends utils.Adapter {
      * @param {string} userId - User ID to send message to
      * @param {string} text - Message text
      * @param {{ type: string, payload: object }[]} [attachments] - prepared attachments
+     * @param {{ notify?: boolean }} [options] - send options
      * @returns {Promise<{result: string} | {error: string}>} outcome for sendTo callers
      */
-    async _sendMessage(userId, text, attachments = []) {
+    async _sendMessage(userId, text, attachments = [], options = {}) {
         if (!this.botManager) {
             this.log.warn('Bot not initialized, cannot send message');
             return { error: 'Bot not initialized' };
         }
         try {
-            await this.botManager.sendMessage(userId, text, attachments);
+            await this.botManager.sendMessage(userId, text, attachments, options);
             this.log.debug(`Message sent to user ${userId}`);
             return { result: 'sent' };
         } catch (e) {
@@ -589,11 +597,12 @@ class MaxAdapter extends utils.Adapter {
      * @param {string} chatId - chat ID
      * @param {string} text - Message text
      * @param {{ type: string, payload: object }[]} [attachments] - prepared attachments
+     * @param {{ notify?: boolean }} [options] - send options
      * @returns {Promise<{result: string} | {error: string}>} outcome for sendTo callers
      */
-    async _sendToChat(chatId, text, attachments = []) {
+    async _sendToChat(chatId, text, attachments = [], options = {}) {
         try {
-            await this.botManager.sendToChat(chatId, text, attachments);
+            await this.botManager.sendToChat(chatId, text, attachments, options);
             this.log.debug(`Message sent to chat ${chatId}`);
             return { result: 'sent' };
         } catch (e) {
@@ -645,9 +654,10 @@ class MaxAdapter extends utils.Adapter {
      *
      * @param {string} text - Message text to send to all users
      * @param {{ type: string, payload: object }[]} [attachments] - prepared attachments
+     * @param {{ notify?: boolean }} [options] - send options
      * @returns {Promise<{result: string, sent: number, failed: number, skipped: number} | {error: string}>} outcome
      */
-    async _sendToAll(text, attachments = []) {
+    async _sendToAll(text, attachments = [], options = {}) {
         if (!this.botManager) {
             this.log.warn('Bot not initialized, cannot send message');
             return { error: 'Bot not initialized' };
@@ -660,7 +670,7 @@ class MaxAdapter extends utils.Adapter {
             return { error: 'sendToAllUsers is disabled' };
         }
         try {
-            const summary = await this.botManager.sendToAll(text, attachments);
+            const summary = await this.botManager.sendToAll(text, attachments, options);
             this.log.debug(`Broadcast sent to ${summary.sent} user(s), ${summary.failed} failed`);
             if (summary.sent === 0) {
                 return { error: summary.failed > 0 ? 'Delivery failed for all users' : 'No known users', ...summary };

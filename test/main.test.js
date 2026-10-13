@@ -86,6 +86,7 @@ function createManagerMock() {
     return {
         sent: [],
         chats: [],
+        options: [],
         broadcasts: [],
         prepared: [],
         prepareError: null,
@@ -101,17 +102,20 @@ function createManagerMock() {
             this.prepared.push(media);
             return media.map(m => ({ type: m.type, payload: { token: `${m.type}:${m.source}` } }));
         },
-        async sendMessage(userId, text, attachments = []) {
+        async sendMessage(userId, text, attachments = [], options = {}) {
             if (this.sendError) {
                 throw this.sendError;
             }
             this.sent.push(attachments.length ? { userId, text, attachments } : { userId, text });
+            this.options.push(options);
         },
-        async sendToChat(chatId, text, attachments = []) {
+        async sendToChat(chatId, text, attachments = [], options = {}) {
             this.chats.push(attachments.length ? { chatId, text, attachments } : { chatId, text });
+            this.options.push(options);
         },
-        async sendToAll(text, attachments = []) {
+        async sendToAll(text, attachments = [], options = {}) {
             this.broadcasts.push(attachments.length ? { text, attachments } : text);
+            this.options.push(options);
             return this.summary;
         },
         async answerCallback(userId, text) {
@@ -444,6 +448,27 @@ describe('main.js', () => {
             await adapter.onMessage(msg({ userId: 9, text: 'Menu', keyboard: [['Pool', { text: 'Gate', callback: 'g' }]] }));
             assert.deepEqual(manager.prepared, []);
             assert.equal(manager.sent[0].attachments[0].payload.buttons[0][1].type, 'callback');
+        });
+
+        it('sends without notification on notify: false', async () => {
+            await adapter.onMessage(msg({ chatId: -100, text: 'quiet', notify: false }));
+            assert.deepEqual(manager.options, [{ notify: false }]);
+        });
+
+        it('accepts disable_notification of the Telegram adapter', async () => {
+            await adapter.onMessage(msg({ userId: 5, text: 'quiet', disable_notification: true }));
+            await adapter.onMessage(msg('broadcast'));
+            assert.deepEqual(manager.options, [{ notify: false }, {}]);
+        });
+
+        it('keeps notifications by default and for disable_notification: false', async () => {
+            await adapter.onMessage(msg({ userId: 5, text: 'loud', disable_notification: false }));
+            assert.deepEqual(manager.options, [{}]);
+        });
+
+        it('sends JSON state values silently', async () => {
+            await adapter.onStateChange('max.0.users.42.send', { val: '{"text": "quiet", "notify": false}', ack: false });
+            assert.deepEqual(manager.options, [{ notify: false }]);
         });
 
         it('sends to a group chat with sendTo', async () => {

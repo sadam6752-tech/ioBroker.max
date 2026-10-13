@@ -296,6 +296,27 @@ describe('BotManager', () => {
             assert.deepEqual(bot.extras, [{ attachments }]);
         });
 
+        it('sends silently with notify: false', async () => {
+            const bot = createBotMock();
+            manager.bot = bot;
+            await manager.sendMessage('5', 'quiet', [], { notify: false });
+            await manager.sendToChat('-100', 'quiet', [], { notify: false });
+            assert.deepEqual(bot.sent, [
+                { userId: 5, text: 'quiet' },
+                { chatId: -100, text: 'quiet' },
+            ]);
+            assert.deepEqual(bot.extras, [{ notify: false }, { notify: false }]);
+        });
+
+        it('passes notify: false to every user of a broadcast', async () => {
+            const bot = createBotMock();
+            manager.bot = bot;
+            manager.knownUsers.add('1');
+            manager.knownUsers.add('2');
+            await manager.sendToAll('quiet', [], { notify: false });
+            assert.deepEqual(bot.extras, [{ notify: false }, { notify: false }]);
+        });
+
         it('sends text only without extra options', async () => {
             const bot = createBotMock();
             manager.bot = bot;

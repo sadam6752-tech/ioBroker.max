@@ -1,5 +1,12 @@
 # Older Changelog
 
+### 0.1.5 (2026-09-21)
+- (sadam6752-tech) Update `@maxhub/max-bot-api` to 0.3.x - the library now talks to the MAX API host
+  `platform-api2.max.ru` (make sure the root certificate of the Russian Ministry of Digital Development
+  is in the trust store), plus comments API, sessions/conversation middleware and retry fixes
+- (sadam6752-tech) Move the changelog entries for 0.1.0 and 0.1.1 to CHANGELOG_OLD.md (checker W6020)
+- (sadam6752-tech) Update `@alcalzone/release-script-plugin-license` to 5.2.2 (checker S0064)
+
 ### 0.1.4 (2026-09-21)
 - (sadam6752-tech) **HOTFIX for 0.1.3**: declaring the bot token as `protectedNative` / `encryptedNative`
   made the js-controller transform previously stored plain text tokens into unusable data before the

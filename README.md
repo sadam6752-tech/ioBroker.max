@@ -100,6 +100,19 @@ sendTo('max.0', 'send', { userId: '123456', text: 'Hello!' }, res => {
 });
 ```
 
+### Messages without notification
+
+`notify: false` sends a message silently (no sound or pop-up on the phone). `disable_notification: true` of the
+Telegram adapter is accepted as well, so existing scripts keep working. It works in `sendTo()` and in JSON state values.
+
+```javascript
+sendTo('max.0', 'send', {
+    chatId: -987654321,
+    text: 'Radiation: ' + getState('0_userdata.0.radiation').val + ' µSv/h',
+    notify: false,
+});
+```
+
 ### Send images, videos, audio and files
 
 ```javascript
@@ -258,7 +271,78 @@ Each user gets their own channel under `max.0.users.<userId>`:
 Known users are restored from the object tree after an adapter restart, so
 broadcasts keep working without waiting for every user to write again.
 
+## Troubleshooting
+
+### Find the cause of an error
+
+`sendTo()` answers every call. Log the answer — it names the cause:
+
+```javascript
+sendTo('max.0', 'send', { chatId: -987654321, text: 'Test' }, res => {
+    log('MAX: ' + JSON.stringify(res), res && res.error ? 'warn' : 'info');
+});
+```
+
+`{"result":"sent"}` means MAX accepted the message. For more details set the log level of the instance `max.0` to
+`debug` (Instances → `max.0` → log level): every incoming message is logged with sender and chat.
+
+### Answers of `sendTo()`
+
+| Answer | Cause | Solution |
+| --- | --- | --- |
+| no answer at all | adapter version below 0.1.6 (no `messagebox`), or the instance is not running | update the adapter, check that `max.0` is running |
+| `No text or attachment given` | neither `text` nor `image` / `video` / `audio` / `file` given (a `keyboard` alone is not enough) | add a text |
+| `Unknown command: …` | `sendTo('max.0', '<command>', …)` with a command other than `send` or `answerCallback` | use `send` |
+| `Bot not initialized` | the bot is not running: no token, or the token was rejected at start | check the log of `max.0` at start |
+| `sendToAllUsers is disabled` | a broadcast (no `userId` / `chatId`, or plain text in `message.send`) while **Send to all known users** is off | enable the option or give `userId` / `chatId`. Adapter versions below 0.1.9 do not know `chatId` and treat such a call as a broadcast |
+| `No known users` | broadcast, but no user has written to the bot yet (or none is in **Allowed User IDs**) | let the users press **Start** in the bot |
+| `Delivery failed for all users` | broadcast, every single delivery failed | see the warnings `Failed to send to <userId>` in the log |
+| `Invalid userId: …` / `Invalid chatId: …` | the ID is not a whole number | use the number from `max.0.users` / `max.0.chats` |
+| `Use either userId or chatId` | both given | give only one of them |
+| `Invalid keyboard: …` | wrong `keyboard` (the message names row/button, e.g. `button 1/2 has no text`) | see [Buttons](#buttons-menu) |
+| `Invalid image: expected a file path or an http(s) URL` | an attachment is not a string (same for `video`, `audio`, `file`) | give a path or URL as text |
+| `Cannot attach image …: Cannot read …: ENOENT` | the file does not exist on the ioBroker host (`EACCES`: no permission) | check path and permissions of the `iobroker` user |
+| `Cannot attach …: … is too large` | file above 100 MB | send a smaller file |
+| `Cannot attach …: Download of … failed: HTTP 401` / `404` | the URL needs credentials or does not exist | `http://user:password@host/…`, check the URL in a browser |
+| `Cannot attach …: Upload of … failed: HTTP …` | MAX rejected the upload (e.g. file type or size) | try another format |
+| `answerCallback needs userId and text` / `No button press of user … to answer` | `answerCallback` without data, or the button press was already answered | answer each button press once |
+
+### Errors of the MAX API
+
+Errors returned by MAX have the form `<HTTP status>: <text>`.
+
+| Error | Cause | Solution |
+| --- | --- | --- |
+| `401: Invalid access_token` | the token is wrong or was revoked; at start the log says `the token was rejected` and the adapter does not retry | copy the token again from MasterBot into the settings |
+| `404: Chat not found` | the bot of this adapter is **not a member** of the group, or the chat ID is wrong. Typical when the ID was taken from a script that used another bot | add the bot of this adapter (the token in the settings) to the group, write a message there and take the ID from `max.0.chats.<chatId>` |
+| `403: …` | the bot may not write there, e.g. no rights in the group or the user blocked the bot | give the bot rights in the group / ask the user to press **Start** again |
+| `429: …` | too many requests | send less often, combine messages |
+| `400: …` | MAX rejected the content (e.g. a text that is too long — up to 4000 characters) | shorten the text, check the attachments |
+
+### Connection problems (log of `max.0`)
+
+| Log entry | Cause | Solution |
+| --- | --- | --- |
+| `fetch failed (UNABLE_TO_GET_ISSUER_CERT_LOCALLY …)` | adapter below 0.1.7: Node.js does not trust the certificate of the MAX API | update the adapter (see [Certificate of the MAX API](#certificate-of-the-max-api)) |
+| `fetch failed (ENOTFOUND …)` / `(EAI_AGAIN …)` | DNS: the host cannot resolve `platform-api2.max.ru` | check DNS / internet access of the ioBroker host |
+| `fetch failed (ECONNREFUSED …)` / `(ETIMEDOUT …)` | no connection (firewall, proxy, no internet) | allow outgoing HTTPS to `platform-api2.max.ru` |
+| `Connection to the MAX API lost: …` | short outage; `info.connection` turns false | nothing — the adapter reconnects and logs `Connected to the MAX API` |
+| `Failed to start MAX bot: … Retrying in 60 s` | no connection at start | the adapter retries every 60 s |
+| `No MAX bot token configured!` | the token field is empty | enter the token |
+
+### Messages from a group do not arrive
+
+If `max.0.chats.<chatId>` does not appear after the bot was added and someone wrote in the group, the bot does not
+receive the group messages: make it an administrator of the group. With log level `debug` every received message is
+logged as `Message from <userId> in chat <chatId>: …`.
+
 ## Changelog
+
+### 0.1.10 (2026-10-13)
+- (sadam6752-tech) Messages without notification: `notify: false` in `sendTo()` and JSON state values;
+  `disable_notification: true` of the Telegram adapter is accepted as well
+- (sadam6752-tech) README: section Troubleshooting with all answers of `sendTo()`, errors of the MAX API, connection
+  problems and an example call that shows the cause
 
 ### 0.1.9 (2026-10-12)
 - (sadam6752-tech) Requests like the Telegram adapter: `communicate.request` (`[Name]text`, also button presses),
@@ -296,13 +380,6 @@ broadcasts keep working without waiting for every user to write again.
 - (sadam6752-tech) `message.send`: only a numeric prefix before `|` is taken as user ID; unit tests for `main.js`
 - (sadam6752-tech) Update `@maxhub/max-bot-api` to 1.0.2 (drops `getAllChats`, which the adapter does not use; tolerates
   `message_created` updates without a message)
-
-### 0.1.5 (2026-09-21)
-- (sadam6752-tech) Update `@maxhub/max-bot-api` to 0.3.x - the library now talks to the MAX API host
-  `platform-api2.max.ru` (make sure the root certificate of the Russian Ministry of Digital Development
-  is in the trust store), plus comments API, sessions/conversation middleware and retry fixes
-- (sadam6752-tech) Move the changelog entries for 0.1.0 and 0.1.1 to CHANGELOG_OLD.md (checker W6020)
-- (sadam6752-tech) Update `@alcalzone/release-script-plugin-license` to 5.2.2 (checker S0064)
 
 Older changelog entries can be found in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
