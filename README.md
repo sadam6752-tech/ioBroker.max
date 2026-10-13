@@ -338,6 +338,11 @@ logged as `Message from <userId> in chat <chatId>: …`.
 
 ## Changelog
 
+### 0.1.11 (2026-10-13)
+- (sadam6752-tech) Remove "ioBroker" from `common.keywords` of `io-package.json` (checker W1068); it stays in
+  `package.json`
+- (sadam6752-tech) Update `@iobroker/testing` to 6.3.0 (checker W0037)
+
 ### 0.1.10 (2026-10-13)
 - (sadam6752-tech) Messages without notification: `notify: false` in `sendTo()` and JSON state values;
   `disable_notification: true` of the Telegram adapter is accepted as well
@@ -367,19 +372,6 @@ logged as `Message from <userId> in chat <chatId>: …`.
   the Russian Trusted Root CA used by `platform-api2.max.ru`. The adapter now ships this root certificate and trusts it
   for its own MAX API requests only (new dependency `undici`)
 - (sadam6752-tech) Connection errors are logged with their cause (e.g. certificate, DNS) instead of only `fetch failed`
-
-### 0.1.6 (2026-10-12)
-- (sadam6752-tech) Fix: `info.connection` is now set once the token has been verified; before, the adapter waited for
-  the long polling loop to end and the connection stayed red/yellow. Lost connections are logged and polling is restarted
-  with back-off; a start that failed because of the network is retried every 60 s
-- (sadam6752-tech) Fix: `sendTo()` reaches the adapter (`common.messagebox` was missing); the callback reports errors
-  instead of always answering `sent`, and calls without text are answered instead of timing out
-- (sadam6752-tech) Fix: sending to a user who never wrote to the bot no longer prevents the creation of their objects
-- (sadam6752-tech) Broadcasts skip known users that are no longer in the allowed list
-- (sadam6752-tech) The bot token is shown as a password field in the admin; unused and untranslated admin texts fixed
-- (sadam6752-tech) `message.send`: only a numeric prefix before `|` is taken as user ID; unit tests for `main.js`
-- (sadam6752-tech) Update `@maxhub/max-bot-api` to 1.0.2 (drops `getAllChats`, which the adapter does not use; tolerates
-  `message_created` updates without a message)
 
 Older changelog entries can be found in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

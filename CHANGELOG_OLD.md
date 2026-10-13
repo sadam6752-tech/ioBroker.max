@@ -1,5 +1,18 @@
 # Older Changelog
 
+### 0.1.6 (2026-10-12)
+- (sadam6752-tech) Fix: `info.connection` is now set once the token has been verified; before, the adapter waited for
+  the long polling loop to end and the connection stayed red/yellow. Lost connections are logged and polling is restarted
+  with back-off; a start that failed because of the network is retried every 60 s
+- (sadam6752-tech) Fix: `sendTo()` reaches the adapter (`common.messagebox` was missing); the callback reports errors
+  instead of always answering `sent`, and calls without text are answered instead of timing out
+- (sadam6752-tech) Fix: sending to a user who never wrote to the bot no longer prevents the creation of their objects
+- (sadam6752-tech) Broadcasts skip known users that are no longer in the allowed list
+- (sadam6752-tech) The bot token is shown as a password field in the admin; unused and untranslated admin texts fixed
+- (sadam6752-tech) `message.send`: only a numeric prefix before `|` is taken as user ID; unit tests for `main.js`
+- (sadam6752-tech) Update `@maxhub/max-bot-api` to 1.0.2 (drops `getAllChats`, which the adapter does not use; tolerates
+  `message_created` updates without a message)
+
 ### 0.1.5 (2026-09-21)
 - (sadam6752-tech) Update `@maxhub/max-bot-api` to 0.3.x - the library now talks to the MAX API host
   `platform-api2.max.ru` (make sure the root certificate of the Russian Ministry of Digital Development

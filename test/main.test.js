@@ -138,9 +138,9 @@ describe('main.js', () => {
         });
 
         it('sends a negative prefix to a group chat, never as broadcast', () => {
-            assert.deepEqual(parseSendValue('-76836900000088|Hello group'), {
+            assert.deepEqual(parseSendValue('-987654321012|Hello group'), {
                 userId: null,
-                chatId: '-76836900000088',
+                chatId: '-987654321012',
                 text: 'Hello group',
             });
         });
