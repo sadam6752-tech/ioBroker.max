@@ -7,7 +7,7 @@
 
 const utils = require('@iobroker/adapter-core');
 const BotManager = require('./lib/bot-manager');
-const { normalizeSecrets } = require('./lib/secrets');
+const { normalizeSecrets, migrateToken } = require('./lib/secrets');
 const { describeError } = require('./lib/max-fetch');
 const { collectMedia } = require('./lib/media');
 const { buildKeyboard } = require('./lib/keyboard');
@@ -236,7 +236,8 @@ class MaxAdapter extends utils.Adapter {
 
         await this.setStateAsync('info.connection', false, true);
 
-        // Repair/replace an unusable token before it is used (see v0.1.4 changelog)
+        // Move a plain text token into encrypted storage, then repair/report an unusable token
+        await migrateToken(this);
         await normalizeSecrets(this.config, this.log, attr => this.getEncryptedConfig(attr));
 
         // Create instance objects (idempotent via extendObjectAsync)

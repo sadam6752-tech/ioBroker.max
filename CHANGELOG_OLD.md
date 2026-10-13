@@ -1,5 +1,11 @@
 # Older Changelog
 
+### 0.1.7 (2026-10-12)
+- (sadam6752-tech) Fix: the adapter could not connect to the MAX API (`fetch failed`) because Node.js does not trust
+  the Russian Trusted Root CA used by `platform-api2.max.ru`. The adapter now ships this root certificate and trusts it
+  for its own MAX API requests only (new dependency `undici`)
+- (sadam6752-tech) Connection errors are logged with their cause (e.g. certificate, DNS) instead of only `fetch failed`
+
 ### 0.1.6 (2026-10-12)
 - (sadam6752-tech) Fix: `info.connection` is now set once the token has been verified; before, the adapter waited for
   the long polling loop to end and the connection stayed red/yellow. Lost connections are logged and polling is restarted

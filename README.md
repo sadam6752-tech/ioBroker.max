@@ -41,10 +41,11 @@ installation is required.
 3. Enter the **Bot Token**
 4. Optionally set **Allowed User IDs** (comma-separated) to restrict access
 
-The bot token is stored as a **protected** native field (`protectedNative`), so other
-adapters cannot read it. It is kept as plain text inside the instance configuration — encryption via
-`encryptedNative` is deliberately not used, because the js-controller would "decrypt" already stored
-plain text tokens into unusable data (the legacy decryption is a XOR without a format check).
+The bot token is stored **encrypted** (`encryptedNative`) and **protected** (`protectedNative`): the js-controller
+encrypts it with the system secret, and other adapters cannot read it. Versions up to 0.1.11 kept it as plain text;
+on the first start of 0.1.12 the adapter moves such a token into encrypted storage by itself (log entry
+`The MAX bot token is now stored encrypted`, followed by one restart). If the token cannot be read after the update
+(log entry `token was rejected` or `token is unreadable`), enter it again in the settings.
 
 ### Certificate of the MAX API
 
@@ -329,6 +330,8 @@ Errors returned by MAX have the form `<HTTP status>: <text>`.
 | `Connection to the MAX API lost: …` | short outage; `info.connection` turns false | nothing — the adapter reconnects and logs `Connected to the MAX API` |
 | `Failed to start MAX bot: … Retrying in 60 s` | no connection at start | the adapter retries every 60 s |
 | `No MAX bot token configured!` | the token field is empty | enter the token |
+| `The stored MAX bot token is unreadable …` | the token was damaged (e.g. by version 0.1.3) | enter the token again in the settings |
+| `The MAX bot token is now stored encrypted (one-time migration)` | update from a version up to 0.1.11 — information, not an error | nothing, the adapter restarts once |
 
 ### Messages from a group do not arrive
 
@@ -337,6 +340,12 @@ receive the group messages: make it an administrator of the group. With log leve
 logged as `Message from <userId> in chat <chatId>: …`.
 
 ## Changelog
+
+### 0.1.12 (2026-10-13)
+- (sadam6752-tech) The bot token is stored encrypted (`encryptedNative`, checker W1074). A token stored as plain text by
+  an earlier version is moved into encrypted storage automatically on the first start (one restart); the stored plain
+  text value is used for that, so the token does not have to be entered again
+- (sadam6752-tech) Integration test with a real js-controller for the migration of the token
 
 ### 0.1.11 (2026-10-13)
 - (sadam6752-tech) Remove "ioBroker" from `common.keywords` of `io-package.json` (checker W1068); it stays in
@@ -366,12 +375,6 @@ logged as `Message from <userId> in chat <chatId>: …`.
   or http(s) URL, also several per message), and JSON in `message.send` and `users.<id>.send`. The adapter downloads
   URLs itself (basic auth from the URL) and uploads the file to MAX with its own HTTP client, so the root certificate of
   the MAX API applies to uploads as well; a broadcast uploads each attachment once
-
-### 0.1.7 (2026-10-12)
-- (sadam6752-tech) Fix: the adapter could not connect to the MAX API (`fetch failed`) because Node.js does not trust
-  the Russian Trusted Root CA used by `platform-api2.max.ru`. The adapter now ships this root certificate and trusts it
-  for its own MAX API requests only (new dependency `undici`)
-- (sadam6752-tech) Connection errors are logged with their cause (e.g. certificate, DNS) instead of only `fetch failed`
 
 Older changelog entries can be found in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
