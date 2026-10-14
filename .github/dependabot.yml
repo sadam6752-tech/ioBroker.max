@@ -17,6 +17,11 @@ updates:
       - dependency-name: '@types/node'
         update-types:
           - 'version-update:semver-major'
+      # undici 8 needs Node.js >= 22.19.0, the adapter supports Node.js >= 22.
+      # Raise engines.node first, then allow the major update.
+      - dependency-name: 'undici'
+        update-types:
+          - 'version-update:semver-major'
 
   - package-ecosystem: 'github-actions'
     directory: '/'

@@ -16,6 +16,11 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           merge-method: squash
+          # Only mark the PR for auto-merge: GitHub merges it once the required
+          # status checks of the main branch ruleset have passed. Merging right
+          # away fails with "Repository rule violations found" while tests run.
+          # Needs "Allow auto-merge" in the repository settings.
+          use-github-auto-merge: true
           # Never auto-merge runtime major bumps (e.g. @maxhub/max-bot-api),
           # only patch-level production updates and minor devDependency updates.
           target-development: minor
