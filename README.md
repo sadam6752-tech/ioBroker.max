@@ -2,13 +2,15 @@
 
 # ioBroker.max
 
+![Stable](https://iobroker.live/badges/max-stable.svg)
 [![NPM version](https://img.shields.io/npm/v/iobroker.max.svg)](https://www.npmjs.com/package/iobroker.max)
 [![Downloads](https://img.shields.io/npm/dm/iobroker.max.svg)](https://www.npmjs.com/package/iobroker.max)
 [![License](https://img.shields.io/github/license/sadam6752-tech/ioBroker.max.svg)](LICENSE)
 
 [![NPM](https://nodei.co/npm/iobroker.max.png?downloads=true)](https://nodei.co/npm/iobroker.max/)
 
-![Test and Release](https://github.com/sadam6752-tech/ioBroker.max/workflows/Test%20and%20Release/badge.svg)
+[![Test and Release](https://github.com/sadam6752-tech/ioBroker.max/actions/workflows/test-and-release.yml/badge.svg)](https://github.com/sadam6752-tech/ioBroker.max/actions/workflows/test-and-release.yml)
+![Number of Installations](https://iobroker.live/badges/max-installed.svg)
 
 **ioBroker adapter for MAX messenger bot integration**
 
