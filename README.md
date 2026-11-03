@@ -28,6 +28,8 @@ Analog to ioBroker.telegram — send notifications, receive commands, control de
 - Answer commands only to the user (or group chat) that sent them — `communicate.request` / `communicate.response`
   as in the Telegram adapter
 - Group chats: send to a group the bot is a member of and receive its messages
+- Voice messages are saved as files and announced in `communicate.pathFile`, like in the Telegram adapter (e.g. for
+  speech recognition by another adapter)
 - `sendTo()` support for use in scripts
 
 ## Installation
@@ -156,6 +158,7 @@ Every message (and every button press) is published like `telegram.0.communicate
 | `max.0.communicate.requestChatId` | group chat ID, `0` for a private dialog |
 | `max.0.communicate.requestMessageId` | MAX message ID |
 | `max.0.communicate.response` | write a text or a JSON object here: it goes to the same group chat, or privately to the sender |
+| `max.0.communicate.pathFile` | full path of the last received voice message file (see [Voice messages](#voice-messages)) |
 
 The IDs are written before the request, so a script triggered by `communicate.request` reads the matching values. A
 script written for the Telegram adapter needs only small changes:
@@ -251,6 +254,46 @@ Via state: `max.0.message.send` = `-987654321|Washing machine is done` (a negati
 chat, never a broadcast), or `max.0.chats.-987654321.send` = `Washing machine is done`. A negative `userId` in
 `sendTo()` is taken as `chatId` as well.
 
+### Voice messages
+
+A voice message from an allowed user (see **Allowed User IDs**) is downloaded and saved in the data folder of ioBroker:
+
+```
+<iobroker-data>/max_<instance>/voice/<message id>.<ext>
+```
+
+for example `/opt/iobroker/iobroker-data/max_0/voice/mid.0000abc.ogg`. The extension comes from the content type of the
+download (or the URL), `.ogg` by default. The newest 20 files are kept, older ones are deleted.
+
+The adapter then writes, in this order:
+
+1. `max.0.communicate.requestChatId`, `max.0.communicate.requestUserId`, `max.0.communicate.requestMessageId` — the
+   sender of the voice message;
+2. `max.0.communicate.pathFile` — the full path of the file (always with `/` as separator).
+
+This is the same contract as `telegram.0.communicate.pathFile` of the Telegram adapter, so an adapter or script that
+transcribes Telegram voice messages can be pointed at `max.0` as well. A message that contains only a voice message
+does not write `communicate.request`, `message.received` or `users.<userId>.last_message` with an empty text; a voice
+message with a caption writes both the text and the file.
+
+```javascript
+on({ id: 'max.0.communicate.pathFile', ack: true, change: 'any' }, obj => {
+    const file = String(obj.state.val);
+    if (!file.includes('/voice/')) {
+        return;
+    }
+    const userId = getState('max.0.communicate.requestUserId').val;
+    const chatId = getState('max.0.communicate.requestChatId').val;   // 0 = private dialog
+    log(`Voice message from ${userId}${chatId ? ` in chat ${chatId}` : ''}: ${file}`);
+    // e.g. hand the file to a speech recognition, then answer with
+    // sendTo('max.0', 'send', chatId ? { chatId, text } : { userId, text });
+});
+```
+
+The file lies on the ioBroker host of the `max` instance; a consumer on another host of a multihost system cannot read
+it. With log level `debug` the adapter logs the attachment types of every incoming message
+(`Attachments of message …: audio{payload:url,token}`) and the path of every saved voice message.
+
 ### Connection state
 
 `max.0.info.connection` is `true` while the adapter receives updates from the MAX API. A lost connection is logged
@@ -327,6 +370,7 @@ Errors returned by MAX have the form `<HTTP status>: <text>`.
 | Log entry | Cause | Solution |
 | --- | --- | --- |
 | `fetch failed (UNABLE_TO_GET_ISSUER_CERT_LOCALLY …)` | adapter below 0.1.7: Node.js does not trust the certificate of the MAX API | update the adapter (see [Certificate of the MAX API](#certificate-of-the-max-api)) |
+| `Voice message from <userId> could not be saved: …` | the download of a voice message failed (cause in the message) | check the connection; the next voice message is tried again |
 | `fetch failed (ENOTFOUND …)` / `(EAI_AGAIN …)` | DNS: the host cannot resolve `platform-api2.max.ru` | check DNS / internet access of the ioBroker host |
 | `fetch failed (ECONNREFUSED …)` / `(ETIMEDOUT …)` | no connection (firewall, proxy, no internet) | allow outgoing HTTPS to `platform-api2.max.ru` |
 | `Connection to the MAX API lost: …` | short outage; `info.connection` turns false | nothing — the adapter reconnects and logs `Connected to the MAX API` |
@@ -342,6 +386,15 @@ receive the group messages: make it an administrator of the group. With log leve
 logged as `Message from <userId> in chat <chatId>: …`.
 
 ## Changelog
+
+### 0.1.13 (2026-11-03)
+- (sadam6752-tech) Voice messages: a voice message from an allowed user is saved in
+  `<iobroker-data>/max_<instance>/voice/` (newest 20 files) and its path is written to the new state
+  `communicate.pathFile`, after `communicate.requestChatId` / `requestUserId` / `requestMessageId` — the contract of
+  the Telegram adapter
+- (sadam6752-tech) A message without text (e.g. a pure voice message) no longer writes empty text into
+  `communicate.request`, `message.received` and `users.<userId>.last_message`
+- (sadam6752-tech) Debug log of the attachment types of incoming messages
 
 ### 0.1.12 (2026-10-13)
 - (sadam6752-tech) The bot token is stored encrypted (`encryptedNative`, checker W1074). A token stored as plain text by
@@ -371,12 +424,6 @@ logged as `Message from <userId> in chat <chatId>: …`.
   to all users
 - (sadam6752-tech) Fix: `message.userId` is written before `message.received`, so a script triggered by the text reads
   the right sender
-
-### 0.1.8 (2026-10-12)
-- (sadam6752-tech) Send images, videos, audio and files: `sendTo()` with `image`, `video`, `audio`, `file` (local path
-  or http(s) URL, also several per message), and JSON in `message.send` and `users.<id>.send`. The adapter downloads
-  URLs itself (basic auth from the URL) and uploads the file to MAX with its own HTTP client, so the root certificate of
-  the MAX API applies to uploads as well; a broadcast uploads each attachment once
 
 Older changelog entries can be found in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

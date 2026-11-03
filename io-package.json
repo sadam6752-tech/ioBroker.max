@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "max",
-    "version": "0.1.12",
+    "version": "0.1.13",
     "titleLang": {
       "en": "MAX Messenger Bot",
       "de": "MAX Messenger Bot",
@@ -29,6 +29,19 @@
       "zh-cn": "通过 MAX Messenger 机器人发送和接收消息"
     },
     "news": {
+      "0.1.13": {
+        "en": "Voice messages: a voice message from an allowed user is saved in <iobroker-data>/max_<instance>/voice/ and its path is written to the new state communicate.pathFile (after requestChatId/requestUserId/requestMessageId), like in the Telegram adapter — e.g. for speech recognition. Messages without text no longer write empty text states. Not yet tested with a real voice message: please report the debug log line \"Attachments of message …\" if a voice message is not recognised.",
+        "de": "Sprachnachrichten: Eine Sprachnachricht eines erlaubten Benutzers wird in <iobroker-data>/max_<instance>/voice/ gespeichert und ihr Pfad in den neuen State communicate.pathFile geschrieben (nach requestChatId/requestUserId/requestMessageId), wie beim Telegram-Adapter — z. B. für Spracherkennung. Nachrichten ohne Text schreiben keine leeren Text-States mehr. Noch nicht mit einer echten Sprachnachricht getestet: Wird eine Sprachnachricht nicht erkannt, bitte die Debug-Logzeile „Attachments of message …“ melden.",
+        "ru": "Голосовые сообщения: голосовое сообщение разрешённого пользователя сохраняется в <iobroker-data>/max_<instance>/voice/, а путь к файлу записывается в новое состояние communicate.pathFile (после requestChatId/requestUserId/requestMessageId), как в адаптере Telegram — например, для распознавания речи. Сообщения без текста больше не записывают пустой текст. С настоящим голосовым сообщением ещё не проверено: если голосовое не распознаётся, пришлите строку debug-лога «Attachments of message …».",
+        "pt": "Mensagens de voz: uma mensagem de voz de um utilizador permitido é guardada em <iobroker-data>/max_<instance>/voice/ e o seu caminho é escrito no novo estado communicate.pathFile (depois de requestChatId/requestUserId/requestMessageId), como no adaptador Telegram — p. ex. para reconhecimento de voz. Mensagens sem texto já não escrevem estados de texto vazios. Ainda não testado com uma mensagem de voz real: se uma mensagem de voz não for reconhecida, envie a linha de registo debug «Attachments of message …».",
+        "nl": "Spraakberichten: een spraakbericht van een toegestane gebruiker wordt opgeslagen in <iobroker-data>/max_<instance>/voice/ en het pad wordt in de nieuwe state communicate.pathFile geschreven (na requestChatId/requestUserId/requestMessageId), zoals bij de Telegram-adapter — bijv. voor spraakherkenning. Berichten zonder tekst schrijven geen lege tekststates meer. Nog niet getest met een echt spraakbericht: meld de debug-logregel \"Attachments of message …\" als een spraakbericht niet wordt herkend.",
+        "fr": "Messages vocaux : un message vocal d’un utilisateur autorisé est enregistré dans <iobroker-data>/max_<instance>/voice/ et son chemin est écrit dans le nouvel état communicate.pathFile (après requestChatId/requestUserId/requestMessageId), comme dans l’adaptateur Telegram — p. ex. pour la reconnaissance vocale. Les messages sans texte n’écrivent plus d’états de texte vides. Pas encore testé avec un vrai message vocal : si un message vocal n’est pas reconnu, merci de signaler la ligne de journal debug « Attachments of message … ».",
+        "it": "Messaggi vocali: un messaggio vocale di un utente consentito viene salvato in <iobroker-data>/max_<instance>/voice/ e il suo percorso viene scritto nel nuovo stato communicate.pathFile (dopo requestChatId/requestUserId/requestMessageId), come nell’adattatore Telegram — ad es. per il riconoscimento vocale. I messaggi senza testo non scrivono più stati di testo vuoti. Non ancora testato con un vero messaggio vocale: se un messaggio vocale non viene riconosciuto, segnala la riga di log debug «Attachments of message …».",
+        "es": "Mensajes de voz: un mensaje de voz de un usuario permitido se guarda en <iobroker-data>/max_<instance>/voice/ y su ruta se escribe en el nuevo estado communicate.pathFile (después de requestChatId/requestUserId/requestMessageId), como en el adaptador de Telegram — p. ej. para reconocimiento de voz. Los mensajes sin texto ya no escriben estados de texto vacíos. Aún no probado con un mensaje de voz real: si un mensaje de voz no se reconoce, informa de la línea de registro debug «Attachments of message …».",
+        "pl": "Wiadomości głosowe: wiadomość głosowa dozwolonego użytkownika jest zapisywana w <iobroker-data>/max_<instance>/voice/, a jej ścieżka trafia do nowego stanu communicate.pathFile (po requestChatId/requestUserId/requestMessageId), jak w adapterze Telegram — np. do rozpoznawania mowy. Wiadomości bez tekstu nie zapisują już pustych stanów tekstowych. Jeszcze nie przetestowane z prawdziwą wiadomością głosową: jeśli wiadomość głosowa nie zostanie rozpoznana, zgłoś linię logu debug „Attachments of message …”.",
+        "uk": "Голосові повідомлення: голосове повідомлення дозволеного користувача зберігається в <iobroker-data>/max_<instance>/voice/, а шлях до файлу записується в новий стан communicate.pathFile (після requestChatId/requestUserId/requestMessageId), як в адаптері Telegram — наприклад, для розпізнавання мовлення. Повідомлення без тексту більше не записують порожній текст. Зі справжнім голосовим повідомленням ще не перевірено: якщо голосове не розпізнається, надішліть рядок debug-журналу «Attachments of message …».",
+        "zh-cn": "语音消息：允许用户发送的语音消息会保存到 <iobroker-data>/max_<instance>/voice/，其路径写入新状态 communicate.pathFile（在 requestChatId/requestUserId/requestMessageId 之后），与 Telegram 适配器相同——例如用于语音识别。不含文本的消息不再写入空文本状态。尚未用真实语音消息测试：如果语音消息未被识别，请报告调试日志行 “Attachments of message …”。"
+      },
       "0.1.12": {
         "en": "The bot token is now stored encrypted (encryptedNative). A token stored as plain text by an earlier version is moved into encrypted storage automatically on the first start (the adapter restarts once); it does not have to be entered again.",
         "de": "Der Bot-Token wird jetzt verschlüsselt gespeichert (encryptedNative). Ein von einer früheren Version im Klartext gespeicherter Token wird beim ersten Start automatisch verschlüsselt (der Adapter startet einmal neu); er muss nicht neu eingegeben werden.",
@@ -106,19 +119,6 @@
         "pl": "Poprawka: adapter nie mógł połączyć się z API MAX („fetch failed”), ponieważ Node.js nie ufa certyfikatowi Russian Trusted Root CA używanemu przez platform-api2.max.ru. Adapter zawiera teraz ten certyfikat główny i ufa mu wyłącznie przy własnych żądaniach do API MAX; na hoście nie trzeba niczego instalować. Błędy połączenia są rejestrowane wraz z przyczyną.",
         "uk": "Виправлено: адаптер не міг підключитися до MAX API («fetch failed»), бо Node.js не довіряє кореневому сертифікату Russian Trusted Root CA, який використовує platform-api2.max.ru. Тепер адаптер містить цей кореневий сертифікат і довіряє йому лише для власних запитів до MAX API; на хості нічого встановлювати не потрібно. Помилки з’єднання записуються в журнал разом із причиною.",
         "zh-cn": "修复：由于 Node.js 不信任 platform-api2.max.ru 使用的 Russian Trusted Root CA，适配器无法连接 MAX API（“fetch failed”）。适配器现在自带该根证书，且仅在自身对 MAX API 的请求中信任它；无需在主机上安装任何内容。连接错误会连同原因一起记录到日志。"
-      },
-      "0.1.6": {
-        "en": "Fix: info.connection turns green once the token is verified; lost connections are logged and retried automatically. Fix: sendTo() reaches the adapter and reports errors to the caller. Fix: objects are created for users who were messaged before they wrote to the bot. Broadcasts respect the allowed users list. The bot token is shown as a password field. Updated @maxhub/max-bot-api to 1.0.2.",
-        "de": "Fix: info.connection wird grün, sobald der Token geprüft ist; Verbindungsabbrüche werden protokolliert und automatisch wiederholt. Fix: sendTo() erreicht den Adapter und meldet Fehler an den Aufrufer. Fix: Objekte werden auch für Benutzer angelegt, denen zuerst geschrieben wurde. Rundsendungen beachten die Liste der erlaubten Benutzer. Der Bot-Token wird als Passwortfeld angezeigt. @maxhub/max-bot-api auf 1.0.2 aktualisiert.",
-        "ru": "Исправлено: info.connection становится зелёным после проверки токена; потеря соединения записывается в лог, подключение восстанавливается автоматически. Исправлено: sendTo() доходит до адаптера и сообщает об ошибках вызывающему. Исправлено: объекты создаются и для пользователей, которым сначала написал бот. Рассылки учитывают список разрешённых пользователей. Токен бота отображается как поле пароля. @maxhub/max-bot-api обновлена до 1.0.2.",
-        "pt": "Correção: info.connection fica verde assim que o token é verificado; as perdas de ligação são registadas e repetidas automaticamente. Correção: sendTo() chega ao adaptador e comunica erros a quem chama. Correção: os objetos são criados para utilizadores que receberam mensagens antes de escreverem ao bot. As difusões respeitam a lista de utilizadores permitidos. O token do bot é mostrado como campo de palavra-passe. @maxhub/max-bot-api atualizado para 1.0.2.",
-        "nl": "Oplossing: info.connection wordt groen zodra het token is gecontroleerd; verbroken verbindingen worden gelogd en automatisch opnieuw geprobeerd. Oplossing: sendTo() bereikt de adapter en meldt fouten aan de aanroeper. Oplossing: objecten worden aangemaakt voor gebruikers die eerst een bericht kregen. Rondzendingen houden rekening met de lijst van toegestane gebruikers. Het bottoken wordt als wachtwoordveld getoond. @maxhub/max-bot-api bijgewerkt naar 1.0.2.",
-        "fr": "Correction : info.connection passe au vert dès que le jeton est vérifié ; les pertes de connexion sont journalisées et retentées automatiquement. Correction : sendTo() atteint l’adaptateur et signale les erreurs à l’appelant. Correction : les objets sont créés pour les utilisateurs contactés avant qu’ils n’écrivent au bot. Les diffusions respectent la liste des utilisateurs autorisés. Le jeton du bot est affiché comme champ de mot de passe. @maxhub/max-bot-api mis à jour vers 1.0.2.",
-        "it": "Correzione: info.connection diventa verde appena il token è verificato; le perdite di connessione vengono registrate e ritentate automaticamente. Correzione: sendTo() raggiunge l’adattatore e segnala gli errori al chiamante. Correzione: gli oggetti vengono creati per gli utenti contattati prima che scrivessero al bot. Le trasmissioni rispettano l’elenco degli utenti consentiti. Il token del bot è mostrato come campo password. @maxhub/max-bot-api aggiornato alla 1.0.2.",
-        "es": "Corrección: info.connection se pone en verde en cuanto se verifica el token; las pérdidas de conexión se registran y se reintentan automáticamente. Corrección: sendTo() llega al adaptador e informa de los errores a quien llama. Corrección: se crean los objetos de los usuarios a los que se escribió antes de que escribieran al bot. Las difusiones respetan la lista de usuarios permitidos. El token del bot se muestra como campo de contraseña. @maxhub/max-bot-api actualizado a 1.0.2.",
-        "pl": "Poprawka: info.connection zmienia się na zielony po sprawdzeniu tokenu; utrata połączenia jest rejestrowana i automatycznie ponawiana. Poprawka: sendTo() dociera do adaptera i zgłasza błędy wywołującemu. Poprawka: obiekty są tworzone dla użytkowników, do których najpierw napisano. Rozgłoszenia uwzględniają listę dozwolonych użytkowników. Token bota jest wyświetlany jako pole hasła. Zaktualizowano @maxhub/max-bot-api do 1.0.2.",
-        "uk": "Виправлено: info.connection стає зеленим після перевірки токена; втрата з’єднання записується в журнал, підключення відновлюється автоматично. Виправлено: sendTo() доходить до адаптера й повідомляє про помилки викликачу. Виправлено: об’єкти створюються й для користувачів, яким бот написав першим. Розсилки враховують список дозволених користувачів. Токен бота відображається як поле пароля. @maxhub/max-bot-api оновлено до 1.0.2.",
-        "zh-cn": "修复：令牌验证通过后 info.connection 即变为绿色；连接中断会记录到日志并自动重试。修复：sendTo() 能够到达适配器，并向调用方报告错误。修复：对于先收到消息、尚未给机器人写信的用户，也会创建对象。群发遵守允许用户列表。机器人令牌以密码字段显示。已将 @maxhub/max-bot-api 更新到 1.0.2。"
       }
     },
     "authors": [
@@ -317,6 +317,31 @@
       "type": "state",
       "common": {
         "name": "Message ID of the last request",
+        "type": "string",
+        "role": "text",
+        "read": true,
+        "write": false,
+        "def": ""
+      },
+      "native": {}
+    },
+    {
+      "_id": "communicate.pathFile",
+      "type": "state",
+      "common": {
+        "name": {
+          "en": "Path of the last received voice message file",
+          "de": "Pfad der Datei der zuletzt empfangenen Sprachnachricht",
+          "ru": "Путь к файлу последнего полученного голосового сообщения",
+          "pt": "Caminho do ficheiro da última mensagem de voz recebida",
+          "nl": "Pad van het bestand van het laatst ontvangen spraakbericht",
+          "fr": "Chemin du fichier du dernier message vocal reçu",
+          "it": "Percorso del file dell’ultimo messaggio vocale ricevuto",
+          "es": "Ruta del archivo del último mensaje de voz recibido",
+          "pl": "Ścieżka pliku ostatniej odebranej wiadomości głosowej",
+          "uk": "Шлях до файлу останнього отриманого голосового повідомлення",
+          "zh-cn": "最近收到的语音消息文件路径"
+        },
         "type": "string",
         "role": "text",
         "read": true,

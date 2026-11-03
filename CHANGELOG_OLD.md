@@ -1,5 +1,11 @@
 # Older Changelog
 
+### 0.1.8 (2026-10-12)
+- (sadam6752-tech) Send images, videos, audio and files: `sendTo()` with `image`, `video`, `audio`, `file` (local path
+  or http(s) URL, also several per message), and JSON in `message.send` and `users.<id>.send`. The adapter downloads
+  URLs itself (basic auth from the URL) and uploads the file to MAX with its own HTTP client, so the root certificate of
+  the MAX API applies to uploads as well; a broadcast uploads each attachment once
+
 ### 0.1.7 (2026-10-12)
 - (sadam6752-tech) Fix: the adapter could not connect to the MAX API (`fetch failed`) because Node.js does not trust
   the Russian Trusted Root CA used by `platform-api2.max.ru`. The adapter now ships this root certificate and trusts it

@@ -832,3 +832,156 @@ describe('BotManager lifecycle', () => {
         assert.equal(adapter.states.get('info.connection'), true);
     });
 });
+
+describe('BotManager voice messages', () => {
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    let adapter;
+    let manager;
+    let bot;
+    let tmpDir;
+    let fetchCalls;
+
+    /**
+     * @param {number} status - HTTP status
+     * @param {string} body - response body
+     * @param {string} [type] - content type
+     * @returns {object} minimal fetch response
+     */
+    function response(status, body, type = 'audio/ogg') {
+        const buffer = Buffer.from(body);
+        return {
+            ok: status >= 200 && status < 300,
+            status,
+            headers: { get: name => (name.toLowerCase() === 'content-type' ? type : null) },
+            arrayBuffer: async () => buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.length),
+        };
+    }
+
+    /**
+     * @param {object} [extra] - message fields
+     * @returns {object} message_created context with a voice attachment
+     */
+    function voiceMessage(extra = {}) {
+        return {
+            user: { user_id: 5, name: 'Alex' },
+            message: {
+                recipient: { chat_type: 'dialog', chat_id: 777 },
+                body: {
+                    mid: 'mid.abc123',
+                    text: '',
+                    attachments: [{ type: 'audio', payload: { url: 'https://vu.example/voice?sig=1', token: 't' } }],
+                    ...extra,
+                },
+            },
+        };
+    }
+
+    beforeEach(() => {
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'iobroker-max-bm-voice-'));
+        adapter = createAdapterMock();
+        adapter.voiceDir = () => path.join(tmpDir, 'max_0', 'voice');
+        manager = new BotManager(adapter);
+        fetchCalls = [];
+        manager.http = {
+            fetch: async url => {
+                fetchCalls.push(url);
+                return response(200, 'OggS-voice');
+            },
+        };
+        bot = createBotMock();
+        manager.bot = bot;
+        manager.setupHandlers();
+    });
+
+    afterEach(() => {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    /**
+     * Wait for the handler including the download
+     *
+     * @returns {Promise<void>} resolves when the handler is done
+     */
+    const settle = () => new Promise(resolve => setTimeout(resolve, 80));
+
+    it('saves a pure voice message and publishes its path after the sender', async () => {
+        bot.emit('message_created', voiceMessage());
+        await settle();
+        const file = adapter.states.get('communicate.pathFile');
+        assert.match(file, /\/max_0\/voice\/mid\.abc123\.ogg$/);
+        assert.equal(fs.readFileSync(file, 'utf8'), 'OggS-voice');
+        assert.equal(adapter.states.get('communicate.requestUserId'), 5);
+        assert.equal(adapter.states.get('communicate.requestChatId'), 0);
+        assert.equal(adapter.states.get('communicate.requestMessageId'), 'mid.abc123');
+        const w = adapter.writes;
+        assert.ok(w.lastIndexOf('communicate.requestUserId') < w.indexOf('communicate.pathFile'));
+        assert.ok(w.lastIndexOf('communicate.requestMessageId') < w.indexOf('communicate.pathFile'));
+    });
+
+    it('does not write empty text states for a pure voice message', async () => {
+        bot.emit('message_created', voiceMessage());
+        await settle();
+        assert.equal(adapter.states.has('communicate.request'), false);
+        assert.equal(adapter.states.has('message.received'), false);
+        assert.equal(adapter.states.has('users.5.last_message'), false);
+        assert.equal(adapter.states.get('message.userId'), 5);
+    });
+
+    it('publishes text and voice of a message with both', async () => {
+        bot.emit('message_created', voiceMessage({ text: 'pool' }));
+        await settle();
+        assert.equal(adapter.states.get('communicate.request'), '[Alex]pool');
+        assert.match(adapter.states.get('communicate.pathFile'), /\/voice\//);
+    });
+
+    it('ignores voice messages of users that are not allowed', async () => {
+        adapter.config.allowedUsers = '111';
+        bot.emit('message_created', voiceMessage());
+        await settle();
+        assert.deepEqual(fetchCalls, []);
+        assert.equal(adapter.states.size, 0);
+    });
+
+    it('logs a failed download and publishes no path', async () => {
+        manager.http.fetch = async () => response(403, 'denied');
+        bot.emit('message_created', voiceMessage());
+        await settle();
+        assert.equal(adapter.states.has('communicate.pathFile'), false);
+        assert.ok(adapter.logs.warn.some(msg => /Voice message from 5 could not be saved: .*HTTP 403/.test(msg)));
+    });
+
+    it('logs the attachment types without URLs', async () => {
+        bot.emit('message_created', voiceMessage());
+        await settle();
+        const line = adapter.logs.debug.find(msg => msg.startsWith('Attachments of message'));
+        assert.equal(line, 'Attachments of message mid.abc123: audio{payload:url,token}');
+    });
+
+    it('publishes the group chat of a voice message', async () => {
+        const ctx = voiceMessage();
+        ctx.message.recipient = { chat_type: 'chat', chat_id: -100 };
+        bot.emit('message_created', ctx);
+        await settle();
+        assert.equal(adapter.states.get('communicate.requestChatId'), -100);
+        assert.match(adapter.states.get('communicate.pathFile'), /\/voice\//);
+        assert.equal(adapter.states.has('chats.-100.last_message'), false);
+    });
+
+    it('keeps only the newest voice files', async () => {
+        const dir = adapter.voiceDir();
+        fs.mkdirSync(dir, { recursive: true });
+        for (let i = 0; i < 25; i++) {
+            const old = path.join(dir, `old${i}.ogg`);
+            fs.writeFileSync(old, 'x');
+            const t = new Date(Date.now() - (i + 1) * 60000);
+            fs.utimesSync(old, t, t);
+        }
+        bot.emit('message_created', voiceMessage());
+        await settle();
+        const files = fs.readdirSync(dir);
+        assert.equal(files.length, 20);
+        assert.ok(files.includes('mid.abc123.ogg'));
+    });
+});

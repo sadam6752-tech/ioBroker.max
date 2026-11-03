@@ -11,7 +11,7 @@ require.cache[corePath] = /** @type {any} */ ({
     id: corePath,
     filename: corePath,
     loaded: true,
-    exports: { Adapter: class {} },
+    exports: { Adapter: class {}, getAbsoluteDefaultDataDir: () => '/opt/iobroker/iobroker-data' },
 });
 const mainPath = require.resolve('../main');
 delete require.cache[mainPath];
@@ -587,6 +587,15 @@ describe('main.js', () => {
             assert.equal(adapter.botManager, null);
             assert.equal(adapter.unloading, true);
             assert.equal(adapter.states.get('info.connection'), false);
+        });
+    });
+
+    describe('voiceDir', () => {
+        it('uses max_<instance>/voice below the ioBroker data folder', () => {
+            const adapter = createAdapter();
+            adapter.instance = 1;
+            const dir = adapter.voiceDir().split(require('node:path').sep).join('/');
+            assert.equal(dir, '/opt/iobroker/iobroker-data/max_1/voice');
         });
     });
 

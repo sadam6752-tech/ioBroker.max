@@ -5,6 +5,7 @@
  * Sends and receives messages via MAX messenger bot
  */
 
+const path = require('node:path');
 const utils = require('@iobroker/adapter-core');
 const BotManager = require('./lib/bot-manager');
 const { normalizeSecrets, migrateToken } = require('./lib/secrets');
@@ -70,6 +71,31 @@ const COMMUNICATE_OBJECTS = [
         type: 'state',
         common: {
             name: 'Message ID of the last request',
+            type: 'string',
+            role: 'text',
+            read: true,
+            write: false,
+            def: '',
+        },
+        native: {},
+    },
+    {
+        _id: 'communicate.pathFile',
+        type: 'state',
+        common: {
+            name: {
+                en: 'Path of the last received voice message file',
+                de: 'Pfad der Datei der zuletzt empfangenen Sprachnachricht',
+                ru: 'Путь к файлу последнего полученного голосового сообщения',
+                pt: 'Caminho do ficheiro da última mensagem de voz recebida',
+                nl: 'Pad van het bestand van het laatst ontvangen spraakbericht',
+                fr: 'Chemin du fichier du dernier message vocal reçu',
+                it: 'Percorso del file dell’ultimo messaggio vocale ricevuto',
+                es: 'Ruta del archivo del último mensaje de voz recibido',
+                pl: 'Ścieżka pliku ostatniej odebranej wiadomości głosowej',
+                uk: 'Шлях до файлу останнього отриманого голосового повідомлення',
+                'zh-cn': '最近收到的语音消息文件路径',
+            },
             type: 'string',
             role: 'text',
             read: true,
@@ -610,6 +636,15 @@ class MaxAdapter extends utils.Adapter {
             this.log.error(`Failed to send message to chat ${chatId}: ${describeError(e)}`);
             return { error: describeError(e) };
         }
+    }
+
+    /**
+     * Folder for received voice messages: <iobroker-data>/max_<instance>/voice
+     *
+     * @returns {string} absolute path
+     */
+    voiceDir() {
+        return path.join(utils.getAbsoluteDefaultDataDir(), `max_${this.instance}`, 'voice');
     }
 
     /**
