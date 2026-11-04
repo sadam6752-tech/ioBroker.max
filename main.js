@@ -12,6 +12,8 @@ const { normalizeSecrets, migrateToken } = require('./lib/secrets');
 const { describeError } = require('./lib/max-fetch');
 const { collectMedia } = require('./lib/media');
 const { buildKeyboard } = require('./lib/keyboard');
+const { messageFormat } = require('./lib/format');
+const { notificationText } = require('./lib/notification');
 
 /** Delay before a failed bot start (network problem) is retried (ms) */
 const START_RETRY_DELAY = 60000;
@@ -179,8 +181,9 @@ function parseSendValue(value) {
 
 /**
  * Build a send request from a sendTo() message or a JSON object:
- * a string (broadcast) or `{ userId? | chatId?, text?, image?, video?, audio?, file?, keyboard?, notify? }`;
- * `notify: false` (or `disable_notification: true` as in the Telegram adapter) sends without notification
+ * a string (broadcast) or `{ userId? | chatId?, text?, image?, video?, audio?, file?, keyboard?, notify?, format? }`;
+ * `notify: false` (or `disable_notification: true` as in the Telegram adapter) sends without notification,
+ * `format: 'markdown' | 'html'` (or `parse_mode` of the Telegram adapter) formats the text
  *
  * @param {unknown} data - message
  * @returns {{ userId: string | null, text: string, media: { type: string, source: string }[], keyboard?: object }} request
@@ -201,6 +204,10 @@ function parseSendRequest(data) {
     const request = normalizeTarget({ userId, chatId, text, media: collectMedia(obj) });
     if (obj.notify === false || obj.disable_notification === true) {
         request.notify = false;
+    }
+    const format = messageFormat(obj);
+    if (format) {
+        request.format = format;
     }
     const keyboard = buildKeyboard(obj.keyboard);
     if (keyboard) {
@@ -469,9 +476,14 @@ class MaxAdapter extends utils.Adapter {
      * - `{ text?, userId?, image?, video?, audio?, file?, keyboard? }`: to one user, or to all users without
      *   `userId`; attachments are local paths or http(s) URLs, a single string or a list; keyboard see lib/keyboard.js
      *
-     * Command `answerCallback` with `{ userId, text }` answers the last button press of that user.
+     * Further commands:
+     * - `answerCallback` `{ userId, text }`: answer the last button press of that user
+     * - `editMessage` `{ messageId, text?, format?, keyboard? }`, `deleteMessage` `{ messageId }`
+     * - `ask` `{ userId | chatId, text, answers: [...], format?, timeout? }`: question with answer buttons; the
+     *   callback receives the answer `{ data, text, userId, chatId, messageId }` or `{ timeout: true }`
+     * - `sendNotification`: ioBroker notification (notification-manager), answered with `{ sent: true | false }`
      *
-     * The callback receives `{ result: 'sent', ... }` or `{ error: '...' }`.
+     * The callback receives `{ result: 'sent', messageId, ... }` or `{ error: '...' }`.
      *
      * @param {ioBroker.Message} obj - Message object
      */
@@ -487,6 +499,22 @@ class MaxAdapter extends utils.Adapter {
 
         if (obj.command === 'answerCallback') {
             reply(await this._answerCallback(obj.message));
+            return;
+        }
+        if (obj.command === 'editMessage') {
+            reply(await this._editMessage(obj.message));
+            return;
+        }
+        if (obj.command === 'deleteMessage') {
+            reply(await this._deleteMessage(obj.message));
+            return;
+        }
+        if (obj.command === 'ask') {
+            reply(await this._ask(obj.message));
+            return;
+        }
+        if (obj.command === 'sendNotification') {
+            reply(await this._sendNotification(obj.message, obj.from));
             return;
         }
         if (obj.command !== 'send') {
@@ -537,6 +565,139 @@ class MaxAdapter extends utils.Adapter {
     }
 
     /**
+     * Message id of an editMessage / deleteMessage request
+     *
+     * @param {unknown} data - request
+     * @returns {string} message id or an empty string
+     */
+    _messageIdOf(data) {
+        const obj = data && typeof data === 'object' ? data : {};
+        return obj.messageId === undefined || obj.messageId === null ? '' : String(obj.messageId).trim();
+    }
+
+    /**
+     * Edit a sent message (sendTo command editMessage): `{ messageId, text?, format?, keyboard? }`;
+     * `keyboard: null` removes the buttons, without `keyboard` they stay as they are
+     *
+     * @param {unknown} data - request
+     * @returns {Promise<object>} `{ result: 'edited', messageId }` or `{ error }`
+     */
+    async _editMessage(data) {
+        const messageId = this._messageIdOf(data);
+        if (messageId === '') {
+            return { error: 'editMessage needs messageId' };
+        }
+        const obj = data;
+        const hasText = obj.text !== undefined && obj.text !== null;
+        const hasKeyboard = Object.prototype.hasOwnProperty.call(obj, 'keyboard');
+        if (!hasText && !hasKeyboard) {
+            return { error: 'editMessage needs text or keyboard' };
+        }
+        if (!this.botManager) {
+            return { error: 'Bot not initialized' };
+        }
+        let format;
+        let keyboard;
+        try {
+            format = messageFormat(obj);
+            keyboard = hasKeyboard ? buildKeyboard(obj.keyboard) : undefined;
+        } catch (e) {
+            return { error: e.message };
+        }
+        try {
+            await this.botManager.editMessage(messageId, hasText ? String(obj.text) : undefined, keyboard, { format });
+            return { result: 'edited', messageId };
+        } catch (e) {
+            this.log.warn(`Cannot edit message ${messageId}: ${describeError(e)}`);
+            return { error: describeError(e) };
+        }
+    }
+
+    /**
+     * Delete a sent message (sendTo command deleteMessage): `{ messageId }`
+     *
+     * @param {unknown} data - request
+     * @returns {Promise<object>} `{ result: 'deleted', messageId }` or `{ error }`
+     */
+    async _deleteMessage(data) {
+        const messageId = this._messageIdOf(data);
+        if (messageId === '') {
+            return { error: 'deleteMessage needs messageId' };
+        }
+        if (!this.botManager) {
+            return { error: 'Bot not initialized' };
+        }
+        try {
+            await this.botManager.deleteMessage(messageId);
+            return { result: 'deleted', messageId };
+        } catch (e) {
+            this.log.warn(`Cannot delete message ${messageId}: ${describeError(e)}`);
+            return { error: describeError(e) };
+        }
+    }
+
+    /**
+     * Question with answer buttons (sendTo command ask): `{ userId | chatId, text, answers, format?, timeout? }`
+     *
+     * @param {unknown} data - request
+     * @returns {Promise<object>} the answer `{ data, text, userId, chatId, messageId }`, `{ timeout: true }` or `{ error }`
+     */
+    async _ask(data) {
+        let request;
+        try {
+            request = parseSendRequest(data);
+        } catch (e) {
+            return { error: e.message };
+        }
+        const obj = data && typeof data === 'object' ? data : {};
+        if (request.userId === null && !request.chatId) {
+            return { error: 'ask needs userId or chatId' };
+        }
+        if (request.text === '') {
+            return { error: 'ask needs a text' };
+        }
+        if (!this.botManager) {
+            return { error: 'Bot not initialized' };
+        }
+        const target = request.chatId ? { chatId: request.chatId } : { userId: request.userId };
+        try {
+            return await this.botManager.ask(target, request.text, obj.answers, {
+                format: request.format,
+                notify: request.notify,
+                timeout: Number(obj.timeout) || undefined,
+            });
+        } catch (e) {
+            this.log.warn(`Cannot ask: ${describeError(e)}`);
+            return { error: describeError(e) };
+        }
+    }
+
+    /**
+     * ioBroker notification of the notification-manager (command sendNotification). Goes to every user in
+     * "Allowed User IDs", or to every known user without that list; "Send to all known users" does not apply.
+     *
+     * @param {unknown} message - notification payload
+     * @param {string} from - sender of the message
+     * @returns {Promise<{ sent: boolean }>} answer expected by the notification-manager
+     */
+    async _sendNotification(message, from) {
+        this.log.info(`New notification received from ${from}`);
+        if (!this.botManager) {
+            this.log.warn('Bot not initialized, cannot send the notification');
+            return { sent: false };
+        }
+        try {
+            const text = notificationText(message);
+            // like the Telegram adapter: system messages without sound
+            const summary = await this.botManager.notifyAll(text, { format: 'html', notify: false });
+            return { sent: summary.sent > 0 };
+        } catch (e) {
+            this.log.error(`Cannot send the notification: ${describeError(e)}`);
+            return { sent: false };
+        }
+    }
+
+    /**
      * Upload the attachments once and send the message to one user or to all users
      *
      * @param {{ userId: string | null, chatId?: string, text: string, media: { type: string, source: string }[], keyboard?: object }} request - send request
@@ -544,7 +705,13 @@ class MaxAdapter extends utils.Adapter {
      */
     async _send(request) {
         const { userId, chatId, text, media, keyboard } = request;
-        const options = request.notify === false ? { notify: false } : {};
+        const options = {};
+        if (request.notify === false) {
+            options.notify = false;
+        }
+        if (request.format) {
+            options.format = request.format;
+        }
         if (!this.botManager) {
             this.log.warn('Bot not initialized, cannot send message');
             return { error: 'Bot not initialized' };
@@ -600,8 +767,8 @@ class MaxAdapter extends utils.Adapter {
      * @param {string} userId - User ID to send message to
      * @param {string} text - Message text
      * @param {{ type: string, payload: object }[]} [attachments] - prepared attachments
-     * @param {{ notify?: boolean }} [options] - send options
-     * @returns {Promise<{result: string} | {error: string}>} outcome for sendTo callers
+     * @param {{ notify?: boolean, format?: string }} [options] - send options
+     * @returns {Promise<{result: string, messageId: string | null} | {error: string}>} outcome for sendTo callers
      */
     async _sendMessage(userId, text, attachments = [], options = {}) {
         if (!this.botManager) {
@@ -609,9 +776,9 @@ class MaxAdapter extends utils.Adapter {
             return { error: 'Bot not initialized' };
         }
         try {
-            await this.botManager.sendMessage(userId, text, attachments, options);
+            const messageId = await this.botManager.sendMessage(userId, text, attachments, options);
             this.log.debug(`Message sent to user ${userId}`);
-            return { result: 'sent' };
+            return { result: 'sent', messageId: messageId || null };
         } catch (e) {
             this.log.error(`Failed to send message to ${userId}: ${describeError(e)}`);
             return { error: describeError(e) };
@@ -624,14 +791,14 @@ class MaxAdapter extends utils.Adapter {
      * @param {string} chatId - chat ID
      * @param {string} text - Message text
      * @param {{ type: string, payload: object }[]} [attachments] - prepared attachments
-     * @param {{ notify?: boolean }} [options] - send options
-     * @returns {Promise<{result: string} | {error: string}>} outcome for sendTo callers
+     * @param {{ notify?: boolean, format?: string }} [options] - send options
+     * @returns {Promise<{result: string, messageId: string | null} | {error: string}>} outcome for sendTo callers
      */
     async _sendToChat(chatId, text, attachments = [], options = {}) {
         try {
-            await this.botManager.sendToChat(chatId, text, attachments, options);
+            const messageId = await this.botManager.sendToChat(chatId, text, attachments, options);
             this.log.debug(`Message sent to chat ${chatId}`);
-            return { result: 'sent' };
+            return { result: 'sent', messageId: messageId || null };
         } catch (e) {
             this.log.error(`Failed to send message to chat ${chatId}: ${describeError(e)}`);
             return { error: describeError(e) };
@@ -690,8 +857,8 @@ class MaxAdapter extends utils.Adapter {
      *
      * @param {string} text - Message text to send to all users
      * @param {{ type: string, payload: object }[]} [attachments] - prepared attachments
-     * @param {{ notify?: boolean }} [options] - send options
-     * @returns {Promise<{result: string, sent: number, failed: number, skipped: number} | {error: string}>} outcome
+     * @param {{ notify?: boolean, format?: string }} [options] - send options
+     * @returns {Promise<object>} `{ result: 'sent', sent, failed, skipped, messages, failures }` or `{ error, ... }`
      */
     async _sendToAll(text, attachments = [], options = {}) {
         if (!this.botManager) {

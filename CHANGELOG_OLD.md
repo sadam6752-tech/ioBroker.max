@@ -1,5 +1,17 @@
 # Older Changelog
 
+### 0.1.9 (2026-10-12)
+- (sadam6752-tech) Requests like the Telegram adapter: `communicate.request` (`[Name]text`, also button presses),
+  `communicate.requestUserId`, `communicate.requestChatId`, `communicate.requestMessageId`; `communicate.response`
+  answers the sender (or the group chat) of the last request
+- (sadam6752-tech) Buttons below a message: `keyboard` in `sendTo()` and in JSON state values (message, callback and
+  link buttons); `sendTo('max.0', 'answerCallback', { userId, text })` confirms a button press
+- (sadam6752-tech) Group chats: `chatId` in `sendTo()` and JSON, `-chatId|text` in `message.send`, states
+  `chats.<chatId>.*` with `send`; group messages set `message.chatId`. Before, `-chatId|text` was sent as a broadcast
+  to all users
+- (sadam6752-tech) Fix: `message.userId` is written before `message.received`, so a script triggered by the text reads
+  the right sender
+
 ### 0.1.8 (2026-10-12)
 - (sadam6752-tech) Send images, videos, audio and files: `sendTo()` with `image`, `video`, `audio`, `file` (local path
   or http(s) URL, also several per message), and JSON in `message.send` and `users.<id>.send`. The adapter downloads

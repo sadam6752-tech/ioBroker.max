@@ -117,12 +117,30 @@ function createBotMock() {
         async sendMessageToUser(userId, text, extra) {
             bot.sent.push({ userId, text });
             bot.extras.push(extra);
+            return { body: { mid: `mid.${bot.sent.length}` } };
         },
         async sendMessageToChat(chatId, text, extra) {
             bot.sent.push({ chatId, text });
             bot.extras.push(extra);
+            return { body: { mid: `mid.${bot.sent.length}` } };
+        },
+        async editMessage(messageId, extra) {
+            bot.edited.push({ messageId, extra });
+            return bot.actionResult;
+        },
+        async deleteMessage(messageId) {
+            bot.deleted.push(messageId);
+            return bot.actionResult;
+        },
+        async answerOnCallback(callbackId, extra) {
+            bot.answers.push({ callbackId, extra });
+            return { success: true };
         },
     };
+    bot.edited = [];
+    bot.deleted = [];
+    bot.answers = [];
+    bot.actionResult = { success: true };
     bot.catch = (handler) => {
         bot.errorHandler = handler;
     };
@@ -379,7 +397,8 @@ describe('BotManager', () => {
             manager.knownUsers.add('1');
             manager.knownUsers.add('2');
             const summary = await manager.sendToAll('broadcast');
-            assert.deepEqual(summary, { sent: 2, failed: 0, skipped: 0 });
+            assert.deepEqual({ ...summary, messages: undefined }, { sent: 2, failed: 0, skipped: 0, messages: undefined, failures: [] });
+            assert.equal(summary.messages.length, 2);
             assert.deepEqual(
                 bot.sent.map((entry) => entry.userId).sort(),
                 [1, 2],
@@ -402,7 +421,10 @@ describe('BotManager', () => {
             manager.knownUsers.add('1');
             manager.knownUsers.add('2');
             const summary = await manager.sendToAll('broadcast');
-            assert.deepEqual(summary, { sent: 1, failed: 1, skipped: 0 });
+            assert.equal(summary.sent, 1);
+            assert.equal(summary.failed, 1);
+            assert.equal(summary.skipped, 0);
+            assert.deepEqual(summary.failures, [{ userId: 1, error: 'blocked by user' }]);
             assert.deepEqual(bot.sent, [{ userId: 2, text: 'broadcast' }]);
             assert.equal(adapter.logs.warn.length, 1);
         });
@@ -414,7 +436,9 @@ describe('BotManager', () => {
             manager.knownUsers.add('1');
             manager.knownUsers.add('2');
             const summary = await manager.sendToAll('broadcast');
-            assert.deepEqual(summary, { sent: 1, failed: 0, skipped: 1 });
+            assert.equal(summary.sent, 1);
+            assert.equal(summary.skipped, 1);
+            assert.deepEqual(summary.failures, []);
             assert.deepEqual(bot.sent, [{ userId: 2, text: 'broadcast' }]);
         });
 
@@ -424,7 +448,7 @@ describe('BotManager', () => {
             adapter.config.allowedUsers = '5';
             manager.knownUsers.add('1');
             const summary = await manager.sendToAll('broadcast');
-            assert.deepEqual(summary, { sent: 0, failed: 0, skipped: 1 });
+            assert.deepEqual(summary, { sent: 0, failed: 0, skipped: 1, messages: [], failures: [] });
             assert.equal(bot.sent.length, 0);
             assert.equal(adapter.logs.warn.length, 1);
         });
@@ -983,5 +1007,210 @@ describe('BotManager voice messages', () => {
         const files = fs.readdirSync(dir);
         assert.equal(files.length, 20);
         assert.ok(files.includes('mid.abc123.ogg'));
+    });
+});
+
+describe('BotManager 0.2.0: format, message ids, edit/delete, ask, notifications', () => {
+    let adapter;
+    let manager;
+    let bot;
+
+    beforeEach(() => {
+        adapter = createAdapterMock();
+        manager = new BotManager(adapter);
+        bot = createBotMock();
+        manager.bot = bot;
+        manager.setupHandlers();
+    });
+
+    describe('format', () => {
+        it('passes the format to the MAX API', async () => {
+            await manager.sendMessage('5', '**bold**', [], { format: 'markdown' });
+            assert.deepEqual(bot.extras, [{ format: 'markdown' }]);
+        });
+
+        it('passes the format together with keyboard and attachments', async () => {
+            const keyboard = { type: 'inline_keyboard', payload: { buttons: [[{ type: 'message', text: 'A' }]] } };
+            const image = { type: 'image', payload: { token: 't' } };
+            await manager.sendToChat('-100', '<b>x</b>', [image, keyboard], { format: 'html', notify: false });
+            assert.deepEqual(bot.extras, [{ attachments: [image, keyboard], format: 'html', notify: false }]);
+        });
+
+        it('sends plain text without format', async () => {
+            await manager.sendMessage('5', 'plain');
+            assert.deepEqual(bot.extras, [undefined]);
+        });
+    });
+
+    describe('message ids', () => {
+        it('returns the id of a sent message', async () => {
+            assert.equal(await manager.sendMessage('5', 'a'), 'mid.1');
+            assert.equal(await manager.sendToChat('-100', 'b'), 'mid.2');
+        });
+
+        it('returns null when MAX answers without a message', async () => {
+            bot.api.sendMessageToUser = async () => undefined;
+            assert.equal(await manager.sendMessage('5', 'a'), null);
+        });
+
+        it('lists the ids and the failed recipients of a broadcast', async () => {
+            const original = bot.api.sendMessageToUser;
+            bot.api.sendMessageToUser = async (userId, text, extra) => {
+                if (userId === 2) {
+                    throw new Error('404: Chat not found');
+                }
+                return original(userId, text, extra);
+            };
+            manager.knownUsers.add('1');
+            manager.knownUsers.add('2');
+            const summary = await manager.sendToAll('hi');
+            assert.deepEqual(summary.messages, [{ userId: 1, messageId: 'mid.1' }]);
+            assert.deepEqual(summary.failures, [{ userId: 2, error: '404: Chat not found' }]);
+        });
+    });
+
+    describe('editMessage / deleteMessage', () => {
+        it('edits text and format', async () => {
+            await manager.editMessage('mid.7', 'new', undefined, { format: 'html' });
+            assert.deepEqual(bot.edited, [{ messageId: 'mid.7', extra: { text: 'new', format: 'html' } }]);
+        });
+
+        it('replaces or removes the keyboard', async () => {
+            const keyboard = { type: 'inline_keyboard', payload: { buttons: [[{ type: 'message', text: 'A' }]] } };
+            await manager.editMessage('mid.7', undefined, keyboard);
+            await manager.editMessage('mid.7', undefined, null);
+            assert.deepEqual(bot.edited[0].extra, { attachments: [keyboard] });
+            assert.deepEqual(bot.edited[1].extra, { attachments: [] });
+        });
+
+        it('deletes a message', async () => {
+            await manager.deleteMessage('mid.7');
+            assert.deepEqual(bot.deleted, ['mid.7']);
+        });
+
+        it('reports a failed action of the MAX API', async () => {
+            bot.actionResult = { success: false, message: 'message.not.found' };
+            await assert.rejects(() => manager.editMessage('mid.7', 'x'), /Edit failed: message.not.found/);
+            await assert.rejects(() => manager.deleteMessage('mid.7'), /Delete failed: message.not.found/);
+        });
+
+        it('passes errors of the MAX API on', async () => {
+            bot.api.deleteMessage = async () => {
+                throw new Error('404: Message not found');
+            };
+            await assert.rejects(() => manager.deleteMessage('mid.x'), /404: Message not found/);
+        });
+
+        it('throws when the bot was not started', async () => {
+            manager.bot = null;
+            await assert.rejects(() => manager.editMessage('m', 'x'), /Bot not started/);
+            await assert.rejects(() => manager.deleteMessage('m'), /Bot not started/);
+        });
+    });
+
+    describe('ask', () => {
+        /**
+         * Payload of the n-th answer button of the last sent question
+         *
+         * @param {number} n - answer index
+         * @returns {string} callback payload
+         */
+        const payloadOf = n => bot.extras[bot.extras.length - 1].attachments[0].payload.buttons[n][0].payload;
+
+        it('sends the answers as callback buttons and resolves with the pressed one', async () => {
+            const pending = manager.ask({ userId: '5' }, 'Open the gate?', ['Yes', 'No'], { format: 'markdown' });
+            await flush();
+            const extra = bot.extras[0];
+            assert.equal(extra.format, 'markdown');
+            assert.deepEqual(
+                extra.attachments[0].payload.buttons.map(row => row[0].text),
+                ['Yes', 'No'],
+            );
+            bot.emit('message_callback', {
+                user: { user_id: 5, name: 'Alex' },
+                callback: { payload: payloadOf(1), callback_id: 'cb-1' },
+            });
+            const answer = await pending;
+            assert.deepEqual(answer, { data: '1', text: 'No', userId: 5, chatId: 0, messageId: 'mid.1' });
+            assert.deepEqual(bot.answers, [{ callbackId: 'cb-1', extra: { notification: 'No' } }]);
+            assert.equal(adapter.states.has('communicate.request'), false);
+            assert.equal(manager.pendingAsks.size, 0);
+        });
+
+        it('ignores the answer of another user', async () => {
+            const pending = manager.ask({ userId: '5' }, 'Q?', ['Yes'], { timeout: 1 });
+            await flush();
+            bot.emit('message_callback', { user: { user_id: 6 }, callback: { payload: payloadOf(0) } });
+            await flush();
+            assert.equal(manager.pendingAsks.size, 1);
+            adapter.timers[0].fn();
+            assert.deepEqual(await pending, { timeout: true, messageId: 'mid.1' });
+        });
+
+        it('takes the answer of any member of the asked group chat', async () => {
+            const pending = manager.ask({ chatId: '-100' }, 'Q?', ['Yes']);
+            await flush();
+            bot.emit('message_callback', {
+                user: { user_id: 9 },
+                callback: { payload: payloadOf(0) },
+                message: { recipient: { chat_type: 'chat', chat_id: -100 } },
+            });
+            const answer = await pending;
+            assert.equal(answer.chatId, -100);
+            assert.equal(answer.userId, 9);
+        });
+
+        it('times out with the configured timeout', async () => {
+            const pending = manager.ask({ userId: '5' }, 'Q?', ['Yes'], { timeout: 30 });
+            await flush();
+            assert.equal(adapter.timers[0].ms, 30000);
+            adapter.timers[0].fn();
+            assert.deepEqual(await pending, { timeout: true, messageId: 'mid.1' });
+        });
+
+        it('answers open questions when the adapter stops', async () => {
+            const pending = manager.ask({ userId: '5' }, 'Q?', ['Yes']);
+            await flush();
+            manager.stop();
+            assert.deepEqual(await pending, { error: 'Adapter stopped' });
+            assert.equal(adapter.timers[0].cleared, true);
+        });
+
+        it('ignores answers of finished questions', async () => {
+            bot.emit('message_callback', { user: { user_id: 5 }, callback: { payload: 'max-ask:gone:0' } });
+            await flush();
+            assert.equal(adapter.states.has('communicate.request'), false);
+            assert.ok(adapter.logs.debug.some(m => /no matching open question/.test(m)));
+        });
+
+        it('rejects questions without answers', async () => {
+            await assert.rejects(() => manager.ask({ userId: '5' }, 'Q?', []), /1 to 30 answers/);
+            await assert.rejects(() => manager.ask({ userId: '5' }, 'Q?', ['ok', ' ']), /every answer needs a text/);
+        });
+    });
+
+    describe('notifyAll', () => {
+        it('sends to the allowed users, even unknown ones, without sendToAllUsers', async () => {
+            adapter.config.allowedUsers = '1, 2';
+            adapter.config.sendToAllUsers = false;
+            manager.knownUsers.add('3');
+            const summary = await manager.notifyAll('<b>x</b>', { format: 'html', notify: false });
+            assert.deepEqual(bot.sent.map(m => m.userId).sort(), [1, 2]);
+            assert.deepEqual(bot.extras[0], { format: 'html', notify: false });
+            assert.equal(summary.sent, 2);
+        });
+
+        it('sends to the known users without an allowed list', async () => {
+            manager.knownUsers.add('7');
+            const summary = await manager.notifyAll('x');
+            assert.deepEqual(bot.sent.map(m => m.userId), [7]);
+            assert.equal(summary.sent, 1);
+        });
+
+        it('reports when there is nobody to notify', async () => {
+            const summary = await manager.notifyAll('x');
+            assert.equal(summary.sent, 0);
+            assert.ok(adapter.logs.warn.some(m => /No users to send the notification to/.test(m)));
+        });
     });
 });

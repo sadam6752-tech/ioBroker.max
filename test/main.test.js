@@ -124,6 +124,36 @@ function createManagerMock() {
             }
             this.answered.push({ userId, text });
         },
+        edits: [],
+        deletes: [],
+        asks: [],
+        notifications: [],
+        actionError: null,
+        askResult: { data: '0', text: 'Yes', userId: 5, chatId: 0, messageId: 'mid.9' },
+        notifySummary: { sent: 1, failed: 0, skipped: 0, messages: [], failures: [] },
+        async editMessage(messageId, text, keyboard, options) {
+            if (this.actionError) {
+                throw this.actionError;
+            }
+            this.edits.push({ messageId, text, keyboard, options });
+        },
+        async deleteMessage(messageId) {
+            if (this.actionError) {
+                throw this.actionError;
+            }
+            this.deletes.push(messageId);
+        },
+        async ask(target, text, answers, options) {
+            if (this.actionError) {
+                throw this.actionError;
+            }
+            this.asks.push({ target, text, answers, options });
+            return this.askResult;
+        },
+        async notifyAll(text, options) {
+            this.notifications.push({ text, options });
+            return this.notifySummary;
+        },
         stop() {
             this.stopped = true;
         },
@@ -362,7 +392,7 @@ describe('main.js', () => {
         it('sends to a single user and answers with the result', async () => {
             await adapter.onMessage(msg({ userId: 123, text: 'Hi' }));
             assert.deepEqual(manager.sent, [{ userId: '123', text: 'Hi' }]);
-            assert.deepEqual(adapter.replies[0].message, { result: 'sent' });
+            assert.deepEqual(adapter.replies[0].message, { result: 'sent', messageId: null });
             assert.equal(adapter.replies[0].to, 'system.adapter.javascript.0');
         });
 
@@ -416,7 +446,7 @@ describe('main.js', () => {
             ]);
             assert.equal(manager.sent[0].text, '');
             assert.equal(manager.sent[0].attachments.length, 3);
-            assert.deepEqual(adapter.replies[0].message, { result: 'sent' });
+            assert.deepEqual(adapter.replies[0].message, { result: 'sent', messageId: null });
         });
 
         it('reports an attachment that cannot be uploaded', async () => {
@@ -475,7 +505,7 @@ describe('main.js', () => {
             await adapter.onMessage(msg({ chatId: -100, text: 'Hi', keyboard: [['Pool']] }));
             assert.equal(manager.chats[0].chatId, '-100');
             assert.equal(manager.chats[0].attachments[0].type, 'inline_keyboard');
-            assert.deepEqual(adapter.replies[0].message, { result: 'sent' });
+            assert.deepEqual(adapter.replies[0].message, { result: 'sent', messageId: null });
         });
 
         it('sends to a group chat even when broadcasts are disabled', async () => {
@@ -648,6 +678,208 @@ describe('main.js', () => {
                 }
             }
             assert.deepEqual(Object.keys(en).sort(), [...used].sort());
+        });
+    });
+});
+
+describe('main.js 0.2.0: format, message ids, edit/delete, ask, notifications', () => {
+    let adapter;
+    let manager;
+
+    beforeEach(() => {
+        adapter = createAdapter();
+        manager = createManagerMock();
+        adapter.botManager = manager;
+    });
+
+    /**
+     * @param {unknown} message - payload
+     * @param {string} [command] - command
+     * @returns {object} message object
+     */
+    function msg(message, command = 'send') {
+        return { command, message, from: 'system.adapter.javascript.0', callback: { id: 1 } };
+    }
+
+    describe('format', () => {
+        it('reads format and parse_mode', () => {
+            assert.equal(parseSendRequest({ userId: 5, text: 'x', format: 'html' }).format, 'html');
+            assert.equal(parseSendRequest({ userId: 5, text: 'x', parse_mode: 'MarkdownV2' }).format, 'markdown');
+            assert.equal(parseSendRequest({ userId: 5, text: 'x' }).format, undefined);
+        });
+
+        it('passes the format to the bot', async () => {
+            await adapter.onMessage(msg({ userId: 5, text: '<b>x</b>', format: 'html', keyboard: [['A']] }));
+            assert.deepEqual(manager.options, [{ format: 'html' }]);
+            assert.equal(manager.sent[0].attachments[0].type, 'inline_keyboard');
+        });
+
+        it('takes the format from JSON in message.send', async () => {
+            await adapter.onStateChange('max.0.message.send', {
+                val: '{"userId": 5, "text": "**x**", "format": "markdown"}',
+                ack: false,
+            });
+            assert.deepEqual(manager.options, [{ format: 'markdown' }]);
+        });
+
+        it('rejects an unknown format', async () => {
+            await adapter.onMessage(msg({ userId: 5, text: 'x', format: 'rtf' }));
+            assert.match(adapter.replies[0].message.error, /Invalid format/);
+            assert.equal(manager.sent.length, 0);
+        });
+    });
+
+    describe('message ids', () => {
+        it('answers with the id of the sent message', async () => {
+            manager.sendMessage = async () => 'mid.42';
+            await adapter.onMessage(msg({ userId: 5, text: 'x' }));
+            assert.deepEqual(adapter.replies[0].message, { result: 'sent', messageId: 'mid.42' });
+        });
+
+        it('answers with the id of a message to a group chat', async () => {
+            manager.sendToChat = async () => 'mid.43';
+            await adapter.onMessage(msg({ chatId: -100, text: 'x' }));
+            assert.deepEqual(adapter.replies[0].message, { result: 'sent', messageId: 'mid.43' });
+        });
+
+        it('passes the ids and failures of a broadcast on', async () => {
+            manager.summary = {
+                sent: 1,
+                failed: 1,
+                skipped: 0,
+                messages: [{ userId: 1, messageId: 'mid.1' }],
+                failures: [{ userId: 2, error: '404: Chat not found' }],
+            };
+            await adapter.onMessage(msg('hello'));
+            assert.deepEqual(adapter.replies[0].message, { result: 'sent', ...manager.summary });
+        });
+    });
+
+    describe('editMessage', () => {
+        it('edits text, format and keyboard', async () => {
+            await adapter.onMessage(msg({ messageId: 'mid.1', text: 'new', format: 'html', keyboard: [['A']] }, 'editMessage'));
+            assert.equal(manager.edits[0].messageId, 'mid.1');
+            assert.equal(manager.edits[0].text, 'new');
+            assert.deepEqual(manager.edits[0].options, { format: 'html' });
+            assert.equal(manager.edits[0].keyboard.type, 'inline_keyboard');
+            assert.deepEqual(adapter.replies[0].message, { result: 'edited', messageId: 'mid.1' });
+        });
+
+        it('removes the keyboard with keyboard: null and keeps it without keyboard', async () => {
+            await adapter.onMessage(msg({ messageId: 'mid.1', keyboard: null }, 'editMessage'));
+            await adapter.onMessage(msg({ messageId: 'mid.1', text: 'only text' }, 'editMessage'));
+            assert.equal(manager.edits[0].keyboard, null);
+            assert.equal(manager.edits[0].text, undefined);
+            assert.equal(manager.edits[1].keyboard, undefined);
+        });
+
+        it('reports missing data and errors', async () => {
+            await adapter.onMessage(msg({ text: 'x' }, 'editMessage'));
+            await adapter.onMessage(msg({ messageId: 'mid.1' }, 'editMessage'));
+            await adapter.onMessage(msg({ messageId: 'mid.1', text: 'x', keyboard: 'bad' }, 'editMessage'));
+            manager.actionError = new Error('404: Message not found');
+            await adapter.onMessage(msg({ messageId: 'mid.1', text: 'x' }, 'editMessage'));
+            assert.deepEqual(
+                adapter.replies.map(r => r.message.error),
+                [
+                    'editMessage needs messageId',
+                    'editMessage needs text or keyboard',
+                    'Invalid keyboard: expected a list of rows',
+                    '404: Message not found',
+                ],
+            );
+        });
+    });
+
+    describe('deleteMessage', () => {
+        it('deletes a message', async () => {
+            await adapter.onMessage(msg({ messageId: 'mid.1' }, 'deleteMessage'));
+            assert.deepEqual(manager.deletes, ['mid.1']);
+            assert.deepEqual(adapter.replies[0].message, { result: 'deleted', messageId: 'mid.1' });
+        });
+
+        it('reports a missing messageId and errors of the MAX API', async () => {
+            await adapter.onMessage(msg({}, 'deleteMessage'));
+            manager.actionError = new Error('Delete failed: message.not.found');
+            await adapter.onMessage(msg({ messageId: 'mid.1' }, 'deleteMessage'));
+            assert.deepEqual(
+                adapter.replies.map(r => r.message.error),
+                ['deleteMessage needs messageId', 'Delete failed: message.not.found'],
+            );
+        });
+    });
+
+    describe('ask', () => {
+        it('asks one user and answers with the pressed answer', async () => {
+            await adapter.onMessage(msg({ userId: 5, text: 'Open?', answers: ['Yes', 'No'], timeout: 30, format: 'html' }, 'ask'));
+            assert.deepEqual(manager.asks, [
+                {
+                    target: { userId: '5' },
+                    text: 'Open?',
+                    answers: ['Yes', 'No'],
+                    options: { format: 'html', notify: undefined, timeout: 30 },
+                },
+            ]);
+            assert.deepEqual(adapter.replies[0].message, manager.askResult);
+        });
+
+        it('asks a group chat', async () => {
+            await adapter.onMessage(msg({ chatId: -100, text: 'Open?', answers: ['Yes'] }, 'ask'));
+            assert.deepEqual(manager.asks[0].target, { chatId: '-100' });
+        });
+
+        it('needs a recipient and a text', async () => {
+            await adapter.onMessage(msg({ text: 'Open?', answers: ['Yes'] }, 'ask'));
+            await adapter.onMessage(msg({ userId: 5, answers: ['Yes'] }, 'ask'));
+            manager.actionError = new Error('ask needs 1 to 30 answers');
+            await adapter.onMessage(msg({ userId: 5, text: 'x', answers: [] }, 'ask'));
+            assert.deepEqual(
+                adapter.replies.map(r => r.message.error),
+                ['ask needs userId or chatId', 'ask needs a text', 'ask needs 1 to 30 answers'],
+            );
+        });
+    });
+
+    describe('sendNotification', () => {
+        const notification = {
+            host: 'system.host.raspi',
+            category: {
+                name: 'Disk space',
+                description: 'Low',
+                instances: { 'system.adapter.backitup.0': { messages: [{ ts: 1, message: 'm' }] } },
+            },
+        };
+
+        it('sends the notification as html without sound and answers { sent: true }', async () => {
+            adapter.config.sendToAllUsers = false;
+            await adapter.onMessage(msg(notification, 'sendNotification'));
+            assert.equal(manager.notifications.length, 1);
+            assert.match(manager.notifications[0].text, /^<b>Disk space<\/b>/);
+            assert.deepEqual(manager.notifications[0].options, { format: 'html', notify: false });
+            assert.deepEqual(adapter.replies[0].message, { sent: true });
+            assert.equal(adapter.replies[0].command, 'sendNotification');
+        });
+
+        it('answers { sent: false } when nobody got it', async () => {
+            manager.notifySummary = { sent: 0, failed: 1, skipped: 0, messages: [], failures: [] };
+            await adapter.onMessage(msg(notification, 'sendNotification'));
+            assert.deepEqual(adapter.replies[0].message, { sent: false });
+        });
+
+        it('answers { sent: false } without a running bot', async () => {
+            adapter.botManager = null;
+            await adapter.onMessage(msg(notification, 'sendNotification'));
+            assert.deepEqual(adapter.replies[0].message, { sent: false });
+        });
+    });
+
+    describe('io-package.json', () => {
+        const ioPackage = require('../io-package.json');
+
+        it('declares Blockly and notifications', () => {
+            assert.equal(ioPackage.common.blockly, true);
+            assert.deepEqual(ioPackage.common.supportedMessages, { notifications: true });
+            assert.equal(ioPackage.common.messagebox, true);
         });
     });
 });

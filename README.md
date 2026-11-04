@@ -28,6 +28,9 @@ Analog to ioBroker.telegram — send notifications, receive commands, control de
 - Answer commands only to the user (or group chat) that sent them — `communicate.request` / `communicate.response`
   as in the Telegram adapter
 - Group chats: send to a group the bot is a member of and receive its messages
+- Text formatting (Markdown or HTML), message ids, editing and deleting sent messages
+- Questions with answer buttons that wait for the answer (`ask`)
+- ioBroker notifications (notification-manager) and Blockly blocks for the JavaScript adapter
 - Voice messages are saved as files and announced in `communicate.pathFile`, like in the Telegram adapter (e.g. for
   speech recognition by another adapter)
 - `sendTo()` support for use in scripts
@@ -101,9 +104,103 @@ sendTo('max.0', 'send', 'Hello everyone!');
 sendTo('max.0', 'send', { userId: '123456', text: 'Hello!' }, res => {
     if (res.error) {
         log(`MAX: ${res.error}`, 'warn');
+    } else {
+        log(`MAX: sent as ${res.messageId}`);
     }
 });
 ```
+
+### Text formatting
+
+`format: 'markdown'` or `format: 'html'` formats the text with the markup of MAX. For scripts written for the Telegram
+adapter `parse_mode` is accepted as well: `'HTML'` becomes `html`, `'Markdown'` and `'MarkdownV2'` become `markdown`.
+Without both the text is sent as plain text, as before. The format works together with attachments and buttons, in
+`sendTo()`, in JSON state values (`message.send`, `users.<userId>.send`, `chats.<chatId>.send`) and in `editMessage`.
+
+```javascript
+sendTo('max.0', 'send', { userId: 123456, text: '<b>Alarm</b> in the <i>garage</i>', format: 'html' });
+sendTo('max.0', 'send', { userId: 123456, text: '**Alarm** in the garage', format: 'markdown' });
+sendTo('max.0', 'send', { userId: 123456, text: '<b>Alarm</b>', parse_mode: 'HTML' }); // Telegram style
+```
+
+The markup is the one of MAX, not the one of Telegram: a text escaped for Telegram MarkdownV2 (`\.`, `\!`) may look
+different in MAX — remove the escaping when you port such a script. Which tags and Markdown elements MAX renders is
+described in the documentation of the MAX Bot API (<https://dev.max.ru/docs-api>).
+
+### Message ids, editing and deleting
+
+Every `send` answers with the id of the sent message (`messageId`, like `returnMessageIds: true` of the Telegram
+adapter):
+
+| Recipient | Answer |
+| --- | --- |
+| one user / one group chat | `{ result: 'sent', messageId: 'mid.…' }` |
+| broadcast | `{ result: 'sent', sent, failed, skipped, messages: [{ userId, messageId }], failures: [{ userId, error }] }` |
+
+With the id a message can be changed or removed later:
+
+```javascript
+sendTo('max.0', 'send', { userId: 123456, text: 'Washing machine: 10 min left' }, res => {
+    if (res.messageId) {
+        // later: change the text (and the buttons)
+        sendTo('max.0', 'editMessage', { messageId: res.messageId, text: 'Washing machine: <b>done</b>', format: 'html' });
+        // or remove the message
+        // sendTo('max.0', 'deleteMessage', { messageId: res.messageId });
+    }
+});
+```
+
+- `editMessage` `{ messageId, text?, format?, keyboard? }` answers `{ result: 'edited', messageId }`. Without
+  `keyboard` the buttons stay as they are, `keyboard: null` removes them, a new `keyboard` replaces them.
+- `deleteMessage` `{ messageId }` answers `{ result: 'deleted', messageId }`.
+- Errors come back as `{ error }` (see [Troubleshooting](#answers-of-sendto)).
+
+### Questions with answer buttons (ask)
+
+`ask` sends a question with one button per answer and waits for the answer of the asked user (or of any member of the
+asked group chat). The callback receives the answer:
+
+```javascript
+sendTo('max.0', 'ask', {
+    userId: 123456,                        // or chatId: -987654321
+    text: 'Open the gate?',
+    answers: ['Yes', 'No'],
+    timeout: 60,                           // seconds, default 60, at most 3600
+}, answer => {
+    if (answer.data === '0') {             // index of the pressed answer
+        setState('0_userdata.0.gate', true);
+    }
+    // answer = { data: '0', text: 'Yes', userId, chatId, messageId }, or { timeout: true } without an answer
+});
+```
+
+The pressed button is confirmed in MAX with the text of the answer. Answers are not written to `communicate.request`.
+Open questions end with `{ error: 'Adapter stopped' }` when the instance stops.
+
+### ioBroker notifications
+
+The adapter receives notifications of ioBroker (`supportedMessages.notifications`), like the Telegram adapter: select
+`max.0` in the settings of the **notification-manager** adapter. A notification is sent, as HTML and without sound,
+with its category, the host and the newest message of every instance:
+
+- to every user in **Allowed User IDs** — also to users who are not known yet (they must have pressed **Start** in
+  the bot, otherwise MAX refuses the message);
+- without that list to every known user.
+
+The setting **Send to all known users** does **not** apply to notifications. The adapter answers
+`{ sent: true }` when at least one user got the notification, otherwise `{ sent: false }`, so that the
+notification-manager can try the next messenger.
+
+### Blockly
+
+The adapter adds two blocks to the category **sendTo** of the JavaScript adapter:
+
+| Block | Generates |
+| --- | --- |
+| **MAX** — instance, message, user ID or group chat ID (both empty = all known users), format, without notification, attachment (image, file, video, audio: path or URL), log level | `sendTo('max.0', 'send', { ... })` |
+| **ask via MAX** — instance, question, user ID or group chat ID, format, log level, answers (gear icon: add answers), one branch per answer | `sendTo('max.0', 'ask', { ..., answers: [...] }, async (msg) => { if (msg.data == '0') { ... } })` |
+
+With **all instances** the call goes to every instance of the adapter (`sendTo('max', ...)`).
 
 ### Messages without notification
 
@@ -141,8 +238,8 @@ sendTo('max.0', 'send', { userId: 123456, audio: '/tmp/doorbell.mp3' });
   MAX; files above 100 MB are refused.
 - A broadcast uploads every attachment only once and sends it to all users.
 
-The callback receives `{ result: 'sent' }` for a single user, `{ result: 'sent', sent, failed, skipped }` for a
-broadcast, or `{ error: '...' }` when nothing was delivered (no text or attachment, bot not running,
+The callback receives `{ result: 'sent', messageId }` for a single user, `{ result: 'sent', sent, failed, skipped,
+messages, failures }` for a broadcast, or `{ error: '...' }` when nothing was delivered (no text or attachment, bot not running,
 `sendToAllUsers` disabled, no known users, attachment not readable or upload failed, delivery failed).
 
 Broadcasts only reach users who contacted the bot before and who are allowed by **Allowed User IDs**.
@@ -338,7 +435,7 @@ sendTo('max.0', 'send', { chatId: -987654321, text: 'Test' }, res => {
 | --- | --- | --- |
 | no answer at all | adapter version below 0.1.6 (no `messagebox`), or the instance is not running | update the adapter, check that `max.0` is running |
 | `No text or attachment given` | neither `text` nor `image` / `video` / `audio` / `file` given (a `keyboard` alone is not enough) | add a text |
-| `Unknown command: …` | `sendTo('max.0', '<command>', …)` with a command other than `send` or `answerCallback` | use `send` |
+| `Unknown command: …` | `sendTo('max.0', '<command>', …)` with a command other than `send`, `editMessage`, `deleteMessage`, `ask`, `answerCallback` or `sendNotification` | use one of these commands |
 | `Bot not initialized` | the bot is not running: no token, or the token was rejected at start | check the log of `max.0` at start |
 | `sendToAllUsers is disabled` | a broadcast (no `userId` / `chatId`, or plain text in `message.send`) while **Send to all known users** is off | enable the option or give `userId` / `chatId`. Adapter versions below 0.1.9 do not know `chatId` and treat such a call as a broadcast |
 | `No known users` | broadcast, but no user has written to the bot yet (or none is in **Allowed User IDs**) | let the users press **Start** in the bot |
@@ -352,6 +449,14 @@ sendTo('max.0', 'send', { chatId: -987654321, text: 'Test' }, res => {
 | `Cannot attach …: Download of … failed: HTTP 401` / `404` | the URL needs credentials or does not exist | `http://user:password@host/…`, check the URL in a browser |
 | `Cannot attach …: Upload of … failed: HTTP …` | MAX rejected the upload (e.g. file type or size) | try another format |
 | `answerCallback needs userId and text` / `No button press of user … to answer` | `answerCallback` without data, or the button press was already answered | answer each button press once |
+| `Invalid format: …` / `Invalid parse_mode: …` | `format` is not `markdown` / `html`, `parse_mode` not `HTML` / `Markdown` / `MarkdownV2` | use one of these values or leave it out |
+| `editMessage needs messageId` / `deleteMessage needs messageId` | no `messageId` given | take it from the answer of `send` |
+| `editMessage needs text or keyboard` | `editMessage` with nothing to change | give `text` and/or `keyboard` |
+| `Edit failed: …` / `Delete failed: …` | MAX refused the change (the reason follows, e.g. the message is too old or not from this bot) | check the `messageId` |
+| `404: …` on `editMessage` / `deleteMessage` | the message does not exist (already deleted, wrong id) | check the `messageId` |
+| `ask needs userId or chatId` / `ask needs a text` / `ask needs 1 to 30 answers` / `ask: every answer needs a text` | incomplete `ask` | give one recipient, a question and 1–30 answers |
+| `{ timeout: true }` (answer of `ask`) | nobody answered in time | raise `timeout` (seconds, up to 3600) |
+| `Adapter stopped` (answer of `ask`) | the instance stopped while the question was open | ask again |
 
 ### Errors of the MAX API
 
@@ -387,6 +492,17 @@ logged as `Message from <userId> in chat <chatId>: …`.
 
 ## Changelog
 
+### 0.2.0 (2026-11-04)
+- (sadam6752-tech) Text formatting: `format: 'markdown' | 'html'` in `sendTo()`, JSON state values and `editMessage`;
+  `parse_mode` of the Telegram adapter is accepted (`HTML` → html, `Markdown` / `MarkdownV2` → markdown)
+- (sadam6752-tech) `send` answers with the message id (`messageId`), a broadcast with `messages` and `failures`;
+  new commands `editMessage` and `deleteMessage`
+- (sadam6752-tech) New command `ask`: question with answer buttons, the callback receives the pressed answer or
+  `{ timeout: true }`
+- (sadam6752-tech) ioBroker notifications (notification-manager, `supportedMessages.notifications`): sent to the
+  allowed users, or to all known users; answered with `{ sent: true | false }`
+- (sadam6752-tech) Blockly blocks "MAX" and "ask via MAX" for the JavaScript adapter, in eleven languages
+
 ### 0.1.13 (2026-11-03)
 - (sadam6752-tech) Voice messages: a voice message from an allowed user is saved in
   `<iobroker-data>/max_<instance>/voice/` (newest 20 files) and its path is written to the new state
@@ -412,18 +528,6 @@ logged as `Message from <userId> in chat <chatId>: …`.
   `disable_notification: true` of the Telegram adapter is accepted as well
 - (sadam6752-tech) README: section Troubleshooting with all answers of `sendTo()`, errors of the MAX API, connection
   problems and an example call that shows the cause
-
-### 0.1.9 (2026-10-12)
-- (sadam6752-tech) Requests like the Telegram adapter: `communicate.request` (`[Name]text`, also button presses),
-  `communicate.requestUserId`, `communicate.requestChatId`, `communicate.requestMessageId`; `communicate.response`
-  answers the sender (or the group chat) of the last request
-- (sadam6752-tech) Buttons below a message: `keyboard` in `sendTo()` and in JSON state values (message, callback and
-  link buttons); `sendTo('max.0', 'answerCallback', { userId, text })` confirms a button press
-- (sadam6752-tech) Group chats: `chatId` in `sendTo()` and JSON, `-chatId|text` in `message.send`, states
-  `chats.<chatId>.*` with `send`; group messages set `message.chatId`. Before, `-chatId|text` was sent as a broadcast
-  to all users
-- (sadam6752-tech) Fix: `message.userId` is written before `message.received`, so a script triggered by the text reads
-  the right sender
 
 Older changelog entries can be found in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

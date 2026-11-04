@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "max",
-    "version": "0.1.13",
+    "version": "0.2.0",
     "titleLang": {
       "en": "MAX Messenger Bot",
       "de": "MAX Messenger Bot",
@@ -29,6 +29,19 @@
       "zh-cn": "通过 MAX Messenger 机器人发送和接收消息"
     },
     "news": {
+      "0.2.0": {
+        "en": "Like the Telegram adapter: text formatting (format markdown/html, also parse_mode), send answers with the message id, new commands editMessage, deleteMessage and ask (question with answer buttons), ioBroker notifications (notification-manager) and Blockly blocks \"MAX\" and \"ask via MAX\". Not yet tested against the real MAX API.",
+        "de": "Wie beim Telegram-Adapter: Textformatierung (format markdown/html, auch parse_mode), send antwortet mit der Nachrichten-ID, neue Befehle editMessage, deleteMessage und ask (Frage mit Antwort-Tasten), ioBroker-Benachrichtigungen (notification-manager) und Blockly-Blöcke „MAX“ und „über MAX fragen“. Noch nicht gegen die echte MAX-API getestet.",
+        "ru": "Как в адаптере Telegram: форматирование текста (format markdown/html, также parse_mode), send возвращает id сообщения, новые команды editMessage, deleteMessage и ask (вопрос с кнопками ответа), уведомления ioBroker (notification-manager) и блоки Blockly «MAX» и «спросить в MAX». С настоящим MAX API ещё не проверено.",
+        "pt": "Como no adaptador Telegram: formatação de texto (format markdown/html, também parse_mode), send responde com o id da mensagem, novos comandos editMessage, deleteMessage e ask (pergunta com botões de resposta), notificações do ioBroker (notification-manager) e blocos Blockly «MAX» e «perguntar pelo MAX». Ainda não testado com a API MAX real.",
+        "nl": "Zoals bij de Telegram-adapter: tekstopmaak (format markdown/html, ook parse_mode), send antwoordt met de bericht-id, nieuwe opdrachten editMessage, deleteMessage en ask (vraag met antwoordknoppen), ioBroker-meldingen (notification-manager) en Blockly-blokken \"MAX\" en \"vragen via MAX\". Nog niet getest met de echte MAX-API.",
+        "fr": "Comme dans l’adaptateur Telegram : mise en forme du texte (format markdown/html, aussi parse_mode), send renvoie l’id du message, nouvelles commandes editMessage, deleteMessage et ask (question avec boutons de réponse), notifications ioBroker (notification-manager) et blocs Blockly « MAX » et « demander via MAX ». Pas encore testé avec la vraie API MAX.",
+        "it": "Come nell’adattatore Telegram: formattazione del testo (format markdown/html, anche parse_mode), send risponde con l’id del messaggio, nuovi comandi editMessage, deleteMessage e ask (domanda con pulsanti di risposta), notifiche di ioBroker (notification-manager) e blocchi Blockly «MAX» e «chiedi tramite MAX». Non ancora testato con la vera API MAX.",
+        "es": "Como en el adaptador de Telegram: formato de texto (format markdown/html, también parse_mode), send responde con el id del mensaje, nuevos comandos editMessage, deleteMessage y ask (pregunta con botones de respuesta), notificaciones de ioBroker (notification-manager) y bloques Blockly «MAX» y «preguntar por MAX». Aún no probado con la API real de MAX.",
+        "pl": "Jak w adapterze Telegram: formatowanie tekstu (format markdown/html, także parse_mode), send zwraca id wiadomości, nowe polecenia editMessage, deleteMessage i ask (pytanie z przyciskami odpowiedzi), powiadomienia ioBroker (notification-manager) oraz bloki Blockly „MAX” i „zapytaj przez MAX”. Jeszcze nie przetestowane z prawdziwym API MAX.",
+        "uk": "Як в адаптері Telegram: форматування тексту (format markdown/html, також parse_mode), send повертає id повідомлення, нові команди editMessage, deleteMessage і ask (питання з кнопками відповіді), сповіщення ioBroker (notification-manager) і блоки Blockly «MAX» та «запитати в MAX». Зі справжнім MAX API ще не перевірено.",
+        "zh-cn": "与 Telegram 适配器一致：文本格式（format markdown/html，也支持 parse_mode），send 返回消息 ID，新增命令 editMessage、deleteMessage 和 ask（带答案按钮的问题），ioBroker 通知（notification-manager），以及 Blockly 积木“MAX”和“通过 MAX 询问”。尚未用真实的 MAX API 测试。"
+      },
       "0.1.13": {
         "en": "Voice messages: a voice message from an allowed user is saved in <iobroker-data>/max_<instance>/voice/ and its path is written to the new state communicate.pathFile (after requestChatId/requestUserId/requestMessageId), like in the Telegram adapter — e.g. for speech recognition. Messages without text no longer write empty text states. Not yet tested with a real voice message: please report the debug log line \"Attachments of message …\" if a voice message is not recognised.",
         "de": "Sprachnachrichten: Eine Sprachnachricht eines erlaubten Benutzers wird in <iobroker-data>/max_<instance>/voice/ gespeichert und ihr Pfad in den neuen State communicate.pathFile geschrieben (nach requestChatId/requestUserId/requestMessageId), wie beim Telegram-Adapter — z. B. für Spracherkennung. Nachrichten ohne Text schreiben keine leeren Text-States mehr. Noch nicht mit einer echten Sprachnachricht getestet: Wird eine Sprachnachricht nicht erkannt, bitte die Debug-Logzeile „Attachments of message …“ melden.",
@@ -106,19 +119,6 @@
         "pl": "Wysyłanie obrazów, filmów, dźwięku i plików: sendTo() z image, video, audio lub file (ścieżka lokalna lub URL http(s), także kilka w jednej wiadomości, np. obraz z kamery w sieci lokalnej) oraz JSON w message.send i users.<id>.send. Adapter sam pobiera i przesyła pliki, więc poprawka certyfikatu z 0.1.7 obejmuje także przesyłanie.",
         "uk": "Надсилання зображень, відео, аудіо та файлів: sendTo() з image, video, audio або file (локальний шлях або http(s)-URL, кілька вкладень в одному повідомленні, наприклад знімок камери з локальної мережі), а також JSON у message.send і users.<id>.send. Адаптер сам завантажує й вивантажує файли, тому виправлення сертифіката з 0.1.7 діє і для вивантаження.",
         "zh-cn": "发送图片、视频、音频和文件：sendTo() 支持 image、video、audio 或 file（本地路径或 http(s) URL，每条消息可含多个附件，例如局域网摄像头快照），message.send 和 users.<id>.send 也支持 JSON。适配器自行下载并上传文件，因此 0.1.7 的证书修复同样适用于上传。"
-      },
-      "0.1.7": {
-        "en": "Fix: the adapter could not connect to the MAX API (\"fetch failed\") because Node.js does not trust the Russian Trusted Root CA used by platform-api2.max.ru. The adapter now ships this root certificate and trusts it for its own MAX API requests only; nothing has to be installed on the host. Connection errors are logged with their cause.",
-        "de": "Fix: Der Adapter konnte keine Verbindung zur MAX-API herstellen („fetch failed“), weil Node.js der von platform-api2.max.ru verwendeten Russian Trusted Root CA nicht vertraut. Der Adapter bringt dieses Root-Zertifikat jetzt mit und vertraut ihm nur für seine eigenen Anfragen an die MAX-API; auf dem Host muss nichts installiert werden. Verbindungsfehler werden mit ihrer Ursache protokolliert.",
-        "ru": "Исправлено: адаптер не мог подключиться к MAX API («fetch failed»), так как Node.js не доверяет корневому сертификату Russian Trusted Root CA, который использует platform-api2.max.ru. Теперь адаптер содержит этот корневой сертификат и доверяет ему только для собственных запросов к MAX API; на хосте ничего устанавливать не нужно. Ошибки соединения записываются в лог вместе с причиной.",
-        "pt": "Correção: o adaptador não conseguia ligar-se à API MAX («fetch failed») porque o Node.js não confia na Russian Trusted Root CA usada por platform-api2.max.ru. O adaptador inclui agora este certificado raiz e confia nele apenas para os seus próprios pedidos à API MAX; não é preciso instalar nada no anfitrião. Os erros de ligação são registados com a sua causa.",
-        "nl": "Oplossing: de adapter kon geen verbinding maken met de MAX-API (\"fetch failed\") omdat Node.js de Russian Trusted Root CA van platform-api2.max.ru niet vertrouwt. De adapter levert dit rootcertificaat nu zelf mee en vertrouwt het alleen voor zijn eigen verzoeken aan de MAX-API; op de host hoeft niets te worden geïnstalleerd. Verbindingsfouten worden met hun oorzaak gelogd.",
-        "fr": "Correction : l’adaptateur ne pouvait pas se connecter à l’API MAX (« fetch failed ») car Node.js ne fait pas confiance à la Russian Trusted Root CA utilisée par platform-api2.max.ru. L’adaptateur embarque désormais ce certificat racine et ne lui fait confiance que pour ses propres requêtes vers l’API MAX ; rien n’est à installer sur l’hôte. Les erreurs de connexion sont journalisées avec leur cause.",
-        "it": "Correzione: l’adattatore non riusciva a connettersi all’API MAX («fetch failed») perché Node.js non considera attendibile la Russian Trusted Root CA usata da platform-api2.max.ru. L’adattatore ora include questo certificato radice e lo considera attendibile solo per le proprie richieste all’API MAX; sull’host non va installato nulla. Gli errori di connessione vengono registrati con la loro causa.",
-        "es": "Corrección: el adaptador no podía conectarse a la API de MAX («fetch failed») porque Node.js no confía en la Russian Trusted Root CA que usa platform-api2.max.ru. El adaptador incluye ahora este certificado raíz y solo confía en él para sus propias solicitudes a la API de MAX; no hay que instalar nada en el equipo. Los errores de conexión se registran con su causa.",
-        "pl": "Poprawka: adapter nie mógł połączyć się z API MAX („fetch failed”), ponieważ Node.js nie ufa certyfikatowi Russian Trusted Root CA używanemu przez platform-api2.max.ru. Adapter zawiera teraz ten certyfikat główny i ufa mu wyłącznie przy własnych żądaniach do API MAX; na hoście nie trzeba niczego instalować. Błędy połączenia są rejestrowane wraz z przyczyną.",
-        "uk": "Виправлено: адаптер не міг підключитися до MAX API («fetch failed»), бо Node.js не довіряє кореневому сертифікату Russian Trusted Root CA, який використовує platform-api2.max.ru. Тепер адаптер містить цей кореневий сертифікат і довіряє йому лише для власних запитів до MAX API; на хості нічого встановлювати не потрібно. Помилки з’єднання записуються в журнал разом із причиною.",
-        "zh-cn": "修复：由于 Node.js 不信任 platform-api2.max.ru 使用的 Russian Trusted Root CA，适配器无法连接 MAX API（“fetch failed”）。适配器现在自带该根证书，且仅在自身对 MAX API 的请求中信任它；无需在主机上安装任何内容。连接错误会连同原因一起记录到日志。"
       }
     },
     "authors": [
@@ -144,6 +144,10 @@
     "type": "messaging",
     "compact": true,
     "messagebox": true,
+    "blockly": true,
+    "supportedMessages": {
+      "notifications": true
+    },
     "enabled": true,
     "connectionType": "cloud",
     "dataSource": "push",
