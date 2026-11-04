@@ -1,5 +1,11 @@
 # Older Changelog
 
+### 0.1.10 (2026-10-13)
+- (sadam6752-tech) Messages without notification: `notify: false` in `sendTo()` and JSON state values;
+  `disable_notification: true` of the Telegram adapter is accepted as well
+- (sadam6752-tech) README: section Troubleshooting with all answers of `sendTo()`, errors of the MAX API, connection
+  problems and an example call that shows the cause
+
 ### 0.1.9 (2026-10-12)
 - (sadam6752-tech) Requests like the Telegram adapter: `communicate.request` (`[Name]text`, also button presses),
   `communicate.requestUserId`, `communicate.requestChatId`, `communicate.requestMessageId`; `communicate.response`

@@ -629,6 +629,15 @@ describe('main.js', () => {
         });
     });
 
+    describe('photoDir', () => {
+        it('uses max_<instance>/photo below the ioBroker data folder', () => {
+            const adapter = createAdapter();
+            adapter.instance = 1;
+            const dir = adapter.photoDir().split(require('node:path').sep).join('/');
+            assert.equal(dir, '/opt/iobroker/iobroker-data/max_1/photo');
+        });
+    });
+
     describe('io-package.json and admin', () => {
         const root = path.join(__dirname, '..');
         const ioPackage = JSON.parse(fs.readFileSync(path.join(root, 'io-package.json'), 'utf8'));

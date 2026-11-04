@@ -86,17 +86,17 @@ const COMMUNICATE_OBJECTS = [
         type: 'state',
         common: {
             name: {
-                en: 'Path of the last received voice message file',
-                de: 'Pfad der Datei der zuletzt empfangenen Sprachnachricht',
-                ru: 'Путь к файлу последнего полученного голосового сообщения',
-                pt: 'Caminho do ficheiro da última mensagem de voz recebida',
-                nl: 'Pad van het bestand van het laatst ontvangen spraakbericht',
-                fr: 'Chemin du fichier du dernier message vocal reçu',
-                it: 'Percorso del file dell’ultimo messaggio vocale ricevuto',
-                es: 'Ruta del archivo del último mensaje de voz recibido',
-                pl: 'Ścieżka pliku ostatniej odebranej wiadomości głosowej',
-                uk: 'Шлях до файлу останнього отриманого голосового повідомлення',
-                'zh-cn': '最近收到的语音消息文件路径',
+                en: 'Path of the last received voice message or photo file',
+                de: 'Pfad der Datei der zuletzt empfangenen Sprachnachricht oder des zuletzt empfangenen Fotos',
+                ru: 'Путь к файлу последнего полученного голосового сообщения или фото',
+                pt: 'Caminho do ficheiro da última mensagem de voz ou foto recebida',
+                nl: 'Pad van het bestand van het laatst ontvangen spraakbericht of de laatst ontvangen foto',
+                fr: 'Chemin du fichier du dernier message vocal ou de la dernière photo reçue',
+                it: 'Percorso del file dell’ultimo messaggio vocale o dell’ultima foto ricevuta',
+                es: 'Ruta del archivo del último mensaje de voz o de la última foto recibida',
+                pl: 'Ścieżka pliku ostatniej odebranej wiadomości głosowej lub zdjęcia',
+                uk: 'Шлях до файлу останнього отриманого голосового повідомлення або фото',
+                'zh-cn': '最近收到的语音消息或照片文件路径',
             },
             type: 'string',
             role: 'text',
@@ -812,6 +812,15 @@ class MaxAdapter extends utils.Adapter {
      */
     voiceDir() {
         return path.join(utils.getAbsoluteDefaultDataDir(), `max_${this.instance}`, 'voice');
+    }
+
+    /**
+     * Folder for received photos: <iobroker-data>/max_<instance>/photo
+     *
+     * @returns {string} absolute path
+     */
+    photoDir() {
+        return path.join(utils.getAbsoluteDefaultDataDir(), `max_${this.instance}`, 'photo');
     }
 
     /**

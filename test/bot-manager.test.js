@@ -1214,3 +1214,199 @@ describe('BotManager 0.2.0: format, message ids, edit/delete, ask, notifications
         });
     });
 });
+
+describe('BotManager photos', () => {
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const path = require('node:path');
+    const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]);
+    let adapter;
+    let manager;
+    let bot;
+    let tmpDir;
+    let fetchCalls;
+    let sequence;
+
+    /**
+     * @param {number} status - HTTP status
+     * @param {Buffer} body - response body
+     * @param {string | null} [type] - content type
+     * @returns {object} minimal fetch response
+     */
+    function response(status, body, type = 'image/jpeg') {
+        return {
+            ok: status >= 200 && status < 300,
+            status,
+            headers: { get: name => (name.toLowerCase() === 'content-type' ? type : null) },
+            arrayBuffer: async () => body.buffer.slice(body.byteOffset, body.byteOffset + body.length),
+        };
+    }
+
+    /**
+     * @param {object} [extra] - message body fields
+     * @param {number} [count] - number of photos
+     * @returns {object} message_created context with photo attachments
+     */
+    function photoMessage(extra = {}, count = 1) {
+        const attachments = [];
+        for (let i = 1; i <= count; i++) {
+            attachments.push({ type: 'image', payload: { photo_id: i, token: 't', url: `https://i.example/p${i}?sig=1` } });
+        }
+        return {
+            user: { user_id: 5, name: 'Alex' },
+            message: {
+                recipient: { chat_type: 'dialog', chat_id: 777 },
+                body: { mid: 'mid.ph1', text: '', attachments, ...extra },
+            },
+        };
+    }
+
+    beforeEach(() => {
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'iobroker-max-bm-photo-'));
+        adapter = createAdapterMock();
+        adapter.photoDir = () => path.join(tmpDir, 'max_0', 'photo');
+        adapter.voiceDir = () => path.join(tmpDir, 'max_0', 'voice');
+        sequence = [];
+        const setState = adapter.setStateAsync.bind(adapter);
+        adapter.setStateAsync = async (id, value, ack) => {
+            sequence.push([id, value]);
+            await setState(id, value, ack);
+        };
+        manager = new BotManager(adapter);
+        fetchCalls = [];
+        manager.http = {
+            fetch: async url => {
+                fetchCalls.push(url);
+                return response(200, JPEG);
+            },
+        };
+        bot = createBotMock();
+        manager.bot = bot;
+        manager.setupHandlers();
+    });
+
+    afterEach(() => {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    const settle = () => new Promise(resolve => setTimeout(resolve, 80));
+
+    /**
+     * Writes of the communicate states in their order
+     *
+     * @returns {unknown[][]} [id, value] pairs
+     */
+    const communicate = () => sequence.filter(([id]) => id.startsWith('communicate.'));
+
+    it('publishes ids, then the photo path, then the caption — with the same message id', async () => {
+        bot.emit('message_created', photoMessage({ text: 'what is this?' }));
+        await settle();
+        const w = communicate();
+        const ids = w.map(([id]) => id);
+        const firstPath = ids.indexOf('communicate.pathFile');
+        assert.ok(firstPath > 0);
+        assert.deepEqual(ids.slice(0, firstPath), [
+            'communicate.requestChatId',
+            'communicate.requestUserId',
+            'communicate.requestMessageId',
+        ]);
+        assert.ok(ids.indexOf('communicate.request') > firstPath);
+        assert.equal(ids[ids.length - 1], 'communicate.request');
+        assert.deepEqual(
+            w.filter(([id]) => id === 'communicate.requestMessageId').map(([, v]) => v),
+            ['mid.ph1', 'mid.ph1'],
+        );
+        assert.match(adapter.states.get('communicate.pathFile'), /\/max_0\/photo\/mid\.ph1\.jpg$/);
+        assert.equal(adapter.states.get('communicate.request'), '[Alex]what is this?');
+        assert.deepEqual(fs.readFileSync(adapter.states.get('communicate.pathFile')), JPEG);
+    });
+
+    it('publishes only the path of a photo without caption', async () => {
+        bot.emit('message_created', photoMessage());
+        await settle();
+        assert.match(adapter.states.get('communicate.pathFile'), /\/photo\/mid\.ph1\.jpg$/);
+        assert.equal(adapter.states.get('communicate.requestMessageId'), 'mid.ph1');
+        assert.equal(adapter.states.has('communicate.request'), false);
+        assert.equal(adapter.states.has('message.received'), false);
+        assert.equal(adapter.states.has('users.5.last_message'), false);
+    });
+
+    it('saves every photo of a message and publishes each path before the caption', async () => {
+        bot.emit('message_created', photoMessage({ text: 'three' }, 3));
+        await settle();
+        const paths = communicate()
+            .filter(([id]) => id === 'communicate.pathFile')
+            .map(([, v]) => path.posix.basename(String(v)));
+        assert.deepEqual(paths, ['mid.ph1_1.jpg', 'mid.ph1_2.jpg', 'mid.ph1_3.jpg']);
+        assert.deepEqual(fetchCalls, ['https://i.example/p1?sig=1', 'https://i.example/p2?sig=1', 'https://i.example/p3?sig=1']);
+        const ids = communicate().map(([id]) => id);
+        assert.ok(ids.lastIndexOf('communicate.pathFile') < ids.indexOf('communicate.request'));
+        assert.equal(fs.readdirSync(adapter.photoDir()).length, 3);
+    });
+
+    it('takes the extension from the content type or the file content', async () => {
+        const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0]);
+        manager.http.fetch = async () => response(200, PNG, 'application/octet-stream');
+        bot.emit('message_created', photoMessage());
+        await settle();
+        assert.match(adapter.states.get('communicate.pathFile'), /mid\.ph1\.png$/);
+    });
+
+    it('ignores photos of users that are not allowed', async () => {
+        adapter.config.allowedUsers = '111';
+        bot.emit('message_created', photoMessage({ text: 'caption' }));
+        await settle();
+        assert.deepEqual(fetchCalls, []);
+        assert.equal(adapter.states.size, 0);
+        assert.equal(fs.existsSync(adapter.photoDir()), false);
+    });
+
+    it('keeps the photos that could be saved and still publishes the caption', async () => {
+        let n = 0;
+        manager.http.fetch = async () => (++n === 1 ? response(404, Buffer.from('gone')) : response(200, JPEG));
+        bot.emit('message_created', photoMessage({ text: 'two' }, 2));
+        await settle();
+        const paths = communicate().filter(([id]) => id === 'communicate.pathFile');
+        assert.equal(paths.length, 1);
+        assert.match(String(paths[0][1]), /mid\.ph1_2\.jpg$/);
+        assert.equal(adapter.states.get('communicate.request'), '[Alex]two');
+        assert.ok(adapter.logs.warn.some(msg => /Photo 1 of 2 from 5 could not be saved: .*HTTP 404/.test(msg)));
+    });
+
+    it('publishes the caption without a path when no photo could be saved', async () => {
+        manager.http.fetch = async () => response(500, Buffer.from('x'));
+        bot.emit('message_created', photoMessage({ text: 'caption' }));
+        await settle();
+        assert.equal(adapter.states.has('communicate.pathFile'), false);
+        assert.equal(adapter.states.get('communicate.request'), '[Alex]caption');
+    });
+
+    it('keeps only the newest 50 photos', async () => {
+        const dir = adapter.photoDir();
+        fs.mkdirSync(dir, { recursive: true });
+        for (let i = 0; i < 55; i++) {
+            const old = path.join(dir, `old${i}.jpg`);
+            fs.writeFileSync(old, 'x');
+            const t = new Date(Date.now() - (i + 1) * 60000);
+            fs.utimesSync(old, t, t);
+        }
+        bot.emit('message_created', photoMessage({}, 2));
+        await settle();
+        const files = fs.readdirSync(dir);
+        assert.equal(files.length, 50);
+        assert.ok(files.includes('mid.ph1_1.jpg'));
+        assert.ok(files.includes('mid.ph1_2.jpg'));
+        // the oldest files are gone, the newest old ones stay
+        assert.ok(!files.includes('old54.jpg'));
+        assert.ok(files.includes('old0.jpg'));
+    });
+
+    it('does not touch the voice folder', async () => {
+        const voiceDir = adapter.voiceDir();
+        fs.mkdirSync(voiceDir, { recursive: true });
+        fs.writeFileSync(path.join(voiceDir, 'v.ogg'), 'x');
+        bot.emit('message_created', photoMessage());
+        await settle();
+        assert.deepEqual(fs.readdirSync(voiceDir), ['v.ogg']);
+    });
+});

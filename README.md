@@ -33,6 +33,7 @@ Analog to ioBroker.telegram — send notifications, receive commands, control de
 - ioBroker notifications (notification-manager) and Blockly blocks for the JavaScript adapter
 - Voice messages are saved as files and announced in `communicate.pathFile`, like in the Telegram adapter (e.g. for
   speech recognition by another adapter)
+- Received photos are saved as files and announced in `communicate.pathFile` as well (e.g. for an AI agent)
 - `sendTo()` support for use in scripts
 
 ## Installation
@@ -255,7 +256,7 @@ Every message (and every button press) is published like `telegram.0.communicate
 | `max.0.communicate.requestChatId` | group chat ID, `0` for a private dialog |
 | `max.0.communicate.requestMessageId` | MAX message ID |
 | `max.0.communicate.response` | write a text or a JSON object here: it goes to the same group chat, or privately to the sender |
-| `max.0.communicate.pathFile` | full path of the last received voice message file (see [Voice messages](#voice-messages)) |
+| `max.0.communicate.pathFile` | full path of the last received voice message or photo file (see [Voice messages](#voice-messages), [Photos](#photos)) |
 
 The IDs are written before the request, so a script triggered by `communicate.request` reads the matching values. A
 script written for the Telegram adapter needs only small changes:
@@ -391,6 +392,60 @@ The file lies on the ioBroker host of the `max` instance; a consumer on another 
 it. With log level `debug` the adapter logs the attachment types of every incoming message
 (`Attachments of message …: audio{payload:url,token}`) and the path of every saved voice message.
 
+### Photos
+
+Photos from an allowed user (attachments of type `image`) are downloaded and saved like voice messages, always and
+without a setting:
+
+```
+<iobroker-data>/max_<instance>/photo/<message id>.<ext>          one photo in the message
+<iobroker-data>/max_<instance>/photo/<message id>_<n>.<ext>      several photos: _1, _2, ...
+```
+
+for example `/opt/iobroker/iobroker-data/max_0/photo/mid.0000abc.jpg`. The extension (`.jpg`, `.png`, `.webp`,
+`.gif`) comes from the content type of the download, else from the first bytes of the file, else from the URL; `.jpg`
+by default. Files larger than 20 MB are not downloaded. The newest **50 files** of the photo folder are kept, older
+ones are deleted when a new photo is saved (the voice folder keeps its own newest 20 files).
+
+The adapter writes, in this order:
+
+1. `max.0.communicate.requestChatId`, `max.0.communicate.requestUserId`, `max.0.communicate.requestMessageId` — the
+   sender of the message;
+2. `max.0.communicate.pathFile` — once for every photo, with the full path of the file (always with `/` as separator);
+3. only if the message has a caption: `max.0.communicate.request` (`[Name]caption`), like a text message.
+
+Photos and caption of one message carry the same `communicate.requestMessageId`, so a consumer can put them together.
+A photo without caption writes only `communicate.pathFile`; `communicate.request`, `message.received` and
+`users.<userId>.last_message` stay untouched. Photos of users that are not allowed are not downloaded. A photo whose
+download fails is logged as warning (`Photo 1 of 2 from … could not be saved: …`); the other photos and the caption are
+published anyway.
+
+```javascript
+const photos = {};   // message id -> list of files
+
+on({ id: 'max.0.communicate.pathFile', ack: true, change: 'any' }, obj => {
+    const file = String(obj.state.val);
+    if (!file.includes('/photo/')) {
+        return;                                  // a voice message
+    }
+    const messageId = getState('max.0.communicate.requestMessageId').val;
+    (photos[messageId] = photos[messageId] || []).push(file);
+    log(`Photo ${file} from ${getState('max.0.communicate.requestUserId').val}`);
+});
+
+on({ id: 'max.0.communicate.request', ack: true, change: 'any' }, obj => {
+    const messageId = getState('max.0.communicate.requestMessageId').val;
+    const files = photos[messageId];
+    if (files) {
+        delete photos[messageId];
+        log(`Caption ${obj.state.val} belongs to ${files.join(', ')}`);
+    }
+});
+```
+
+MAX delivers one download URL per photo; there is no choice of sizes, so the adapter saves the photo as MAX offers it.
+As with voice messages, the file lies on the ioBroker host of the `max` instance.
+
 ### Connection state
 
 `max.0.info.connection` is `true` while the adapter receives updates from the MAX API. A lost connection is logged
@@ -492,6 +547,11 @@ logged as `Message from <userId> in chat <chatId>: …`.
 
 ## Changelog
 
+### 0.2.1 (2026-11-04)
+- (sadam6752-tech) Received photos are saved in `<iobroker-data>/max_<instance>/photo/` (several photos of one message
+  as `<mid>_1`, `<mid>_2`, ...) and announced in `communicate.pathFile`: request ids first, then one path per photo,
+  then the caption in `communicate.request` — all with the same `requestMessageId`; the newest 50 photos are kept
+
 ### 0.2.0 (2026-11-04)
 - (sadam6752-tech) Text formatting: `format: 'markdown' | 'html'` in `sendTo()`, JSON state values and `editMessage`;
   `parse_mode` of the Telegram adapter is accepted (`HTML` → html, `Markdown` / `MarkdownV2` → markdown)
@@ -522,12 +582,6 @@ logged as `Message from <userId> in chat <chatId>: …`.
 - (sadam6752-tech) Remove "ioBroker" from `common.keywords` of `io-package.json` (checker W1068); it stays in
   `package.json`
 - (sadam6752-tech) Update `@iobroker/testing` to 6.3.0 (checker W0037)
-
-### 0.1.10 (2026-10-13)
-- (sadam6752-tech) Messages without notification: `notify: false` in `sendTo()` and JSON state values;
-  `disable_notification: true` of the Telegram adapter is accepted as well
-- (sadam6752-tech) README: section Troubleshooting with all answers of `sendTo()`, errors of the MAX API, connection
-  problems and an example call that shows the cause
 
 Older changelog entries can be found in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 
