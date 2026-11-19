@@ -14,6 +14,7 @@ const { collectMedia } = require('./lib/media');
 const { buildKeyboard } = require('./lib/keyboard');
 const { messageFormat } = require('./lib/format');
 const { notificationText } = require('./lib/notification');
+const { HELP, COMMANDS } = require('./lib/help');
 
 /** Delay before a failed bot start (network problem) is retried (ms) */
 const START_RETRY_DELAY = 60000;
@@ -482,6 +483,7 @@ class MaxAdapter extends utils.Adapter {
      * - `ask` `{ userId | chatId, text, answers: [...], format?, timeout? }`: question with answer buttons; the
      *   callback receives the answer `{ data, text, userId, chatId, messageId }` or `{ timeout: true }`
      * - `sendNotification`: ioBroker notification (notification-manager), answered with `{ sent: true | false }`
+     * - `help`: description of all commands for AI agents, answered with `{ help, commands }` (lib/help.js)
      *
      * The callback receives `{ result: 'sent', messageId, ... }` or `{ error: '...' }`.
      *
@@ -497,6 +499,10 @@ class MaxAdapter extends utils.Adapter {
             }
         };
 
+        if (obj.command === 'help') {
+            reply({ help: HELP, commands: COMMANDS });
+            return;
+        }
         if (obj.command === 'answerCallback') {
             reply(await this._answerCallback(obj.message));
             return;

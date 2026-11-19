@@ -146,7 +146,9 @@
     "messagebox": true,
     "blockly": true,
     "supportedMessages": {
-      "notifications": true
+      "custom": true,
+      "notifications": true,
+      "help": true
     },
     "enabled": true,
     "connectionType": "cloud",
