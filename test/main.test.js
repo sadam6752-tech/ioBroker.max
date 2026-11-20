@@ -531,6 +531,14 @@ describe('main.js', () => {
             assert.match(adapter.replies[0].message.error, /No button press/);
         });
 
+        it('answers help also without a running bot', async () => {
+            adapter.botManager = null;
+            await adapter.onMessage(msg({}, 'help'));
+            const answer = adapter.replies[0].message;
+            assert.match(answer.help, /sendTo max\.0/);
+            assert.ok(answer.commands.some(c => c.command === 'send' && c.write === true));
+        });
+
         it('answers an unknown command', async () => {
             await adapter.onMessage(msg('x', 'foo'));
             assert.deepEqual(adapter.replies[0].message, { error: 'Unknown command: foo' });
@@ -885,9 +893,9 @@ describe('main.js 0.2.0: format, message ids, edit/delete, ask, notifications', 
     describe('io-package.json', () => {
         const ioPackage = require('../io-package.json');
 
-        it('declares Blockly and notifications', () => {
+        it('declares Blockly, notifications and help', () => {
             assert.equal(ioPackage.common.blockly, true);
-            assert.deepEqual(ioPackage.common.supportedMessages, { notifications: true });
+            assert.deepEqual(ioPackage.common.supportedMessages, { custom: true, notifications: true, help: true });
             assert.equal(ioPackage.common.messagebox, true);
         });
     });
