@@ -557,6 +557,9 @@ logged as `Message from <userId> in chat <chatId>: …`.
     Placeholder for the next version (at the beginning of the line):
     ### **WORK IN PROGRESS**
 -->
+### **WORK IN PROGRESS**
+- (sadam6752-tech) `@iobroker/testing` 6.3.2 (repository checker W0037)
+
 ### 0.2.2 (2026-11-20)
 - (@GermanBluefox) Added the message `help`: a description of all messages for AI agents (e.g. pi-agent), and
   `common.supportedMessages.help`
