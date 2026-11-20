@@ -557,7 +557,7 @@ logged as `Message from <userId> in chat <chatId>: …`.
     Placeholder for the next version (at the beginning of the line):
     ### **WORK IN PROGRESS**
 -->
-### **WORK IN PROGRESS**
+### 0.2.2 (2026-11-20)
 - (@GermanBluefox) Added the message `help`: a description of all messages for AI agents (e.g. pi-agent), and
   `common.supportedMessages.help`
 
@@ -591,11 +591,6 @@ logged as `Message from <userId> in chat <chatId>: …`.
   an earlier version is moved into encrypted storage automatically on the first start (one restart); the stored plain
   text value is used for that, so the token does not have to be entered again
 - (sadam6752-tech) Integration test with a real js-controller for the migration of the token
-
-### 0.1.11 (2026-10-13)
-- (sadam6752-tech) Remove "ioBroker" from `common.keywords` of `io-package.json` (checker W1068); it stays in
-  `package.json`
-- (sadam6752-tech) Update `@iobroker/testing` to 6.3.0 (checker W0037)
 
 Older changelog entries can be found in [CHANGELOG_OLD.md](CHANGELOG_OLD.md).
 

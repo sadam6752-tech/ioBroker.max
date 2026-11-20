@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "max",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "titleLang": {
       "en": "MAX Messenger Bot",
       "de": "MAX Messenger Bot",
@@ -29,6 +29,19 @@
       "zh-cn": "通过 MAX Messenger 机器人发送和接收消息"
     },
     "news": {
+      "0.2.2": {
+        "en": "Added the message help: a description of all messages for AI agents (e.g. pi-agent) and script authors, declared in common.supportedMessages.help",
+        "de": "Neue Nachricht help: eine Beschreibung aller Nachrichten für KI-Agenten (z. B. pi-agent) und Skript-Autoren, angemeldet in common.supportedMessages.help",
+        "ru": "Новое сообщение help: описание всех сообщений для ИИ-агентов (например, pi-agent) и авторов скриптов, объявлено в common.supportedMessages.help",
+        "pt": "Nova mensagem help: uma descrição de todas as mensagens para agentes de IA (p. ex. pi-agent) e autores de scripts, declarada em common.supportedMessages.help",
+        "nl": "Nieuw bericht help: een beschrijving van alle berichten voor AI-agenten (bijv. pi-agent) en scriptschrijvers, aangemeld in common.supportedMessages.help",
+        "fr": "Nouveau message help : une description de tous les messages pour les agents IA (p. ex. pi-agent) et les auteurs de scripts, déclarée dans common.supportedMessages.help",
+        "it": "Nuovo messaggio help: una descrizione di tutti i messaggi per agenti IA (ad es. pi-agent) e autori di script, dichiarata in common.supportedMessages.help",
+        "es": "Nuevo mensaje help: una descripción de todos los mensajes para agentes de IA (p. ej. pi-agent) y autores de scripts, declarada en common.supportedMessages.help",
+        "pl": "Nowa wiadomość help: opis wszystkich wiadomości dla agentów AI (np. pi-agent) i autorów skryptów, zadeklarowana w common.supportedMessages.help",
+        "uk": "Нове повідомлення help: опис усіх повідомлень для ШІ-агентів (наприклад, pi-agent) і авторів скриптів, оголошено в common.supportedMessages.help",
+        "zh-cn": "新增消息 help：为 AI 代理（如 pi-agent）和脚本作者描述所有消息，并在 common.supportedMessages.help 中声明"
+      },
       "0.2.1": {
         "en": "Received photos are saved in <iobroker-data>/max_<instance>/photo/ (several photos of one message as <mid>_1, <mid>_2, ...) and announced in communicate.pathFile: request ids first, then one path per photo, then the caption in communicate.request, all with the same requestMessageId. The newest 50 photos are kept. Not yet tested with a real photo from MAX.",
         "de": "Empfangene Fotos werden in <iobroker-data>/max_<instance>/photo/ gespeichert (mehrere Fotos einer Nachricht als <mid>_1, <mid>_2, ...) und in communicate.pathFile gemeldet: zuerst die Request-IDs, dann ein Pfad je Foto, dann die Bildunterschrift in communicate.request, alles mit derselben requestMessageId. Die neuesten 50 Fotos bleiben erhalten. Noch nicht mit einem echten Foto aus MAX getestet.",
@@ -106,19 +119,6 @@
         "pl": "Wiadomości bez powiadomienia: notify: false w sendTo() i w wartościach JSON stanów; akceptowany jest też disable_notification: true z adaptera Telegram. README: nowa sekcja Troubleshooting ze wszystkimi odpowiedziami sendTo(), błędami API MAX (np. 404: Chat not found), problemami z połączeniem i przykładowym wywołaniem pokazującym przyczynę.",
         "uk": "Повідомлення без сповіщення: notify: false у sendTo() та JSON-значеннях станів; параметр disable_notification: true з адаптера Telegram теж підтримується. README: новий розділ Troubleshooting з усіма відповідями sendTo(), помилками MAX API (наприклад, 404: Chat not found), проблемами з’єднання та прикладом запиту, що показує причину.",
         "zh-cn": "无通知消息：在 sendTo() 和 JSON 状态值中使用 notify: false；同样支持 Telegram 适配器的 disable_notification: true。README：新增 Troubleshooting 章节，列出 sendTo() 的所有返回、MAX API 错误（例如 404: Chat not found）、连接问题以及用于查明原因的示例调用。"
-      },
-      "0.1.9": {
-        "en": "Answer commands like in the Telegram adapter: communicate.request ([Name]text, also button presses) with requestUserId/requestChatId, and communicate.response answers only the sender or its group chat. Buttons (menus) with keyboard in sendTo() and JSON. Group chats: chatId in sendTo(), -chatId|text in message.send (before it was sent to all users) and chats.<chatId>.send. Fix: message.userId is written before message.received.",
-        "de": "Befehle beantworten wie im Telegram-Adapter: communicate.request ([Name]Text, auch Tastendrücke) mit requestUserId/requestChatId; communicate.response antwortet nur dem Absender bzw. seinem Gruppenchat. Tasten (Menüs) mit keyboard in sendTo() und JSON. Gruppenchats: chatId in sendTo(), -chatId|Text in message.send (vorher ging das an alle Benutzer) und chats.<chatId>.send. Fix: message.userId wird vor message.received geschrieben.",
-        "ru": "Ответы на команды как в адаптере Telegram: communicate.request ([Имя]текст, а также нажатия кнопок) с requestUserId/requestChatId; communicate.response отвечает только отправителю или его групповому чату. Кнопки (меню) через keyboard в sendTo() и JSON. Групповые чаты: chatId в sendTo(), -chatId|текст в message.send (раньше это уходило всем пользователям) и chats.<chatId>.send. Исправлено: message.userId записывается до message.received.",
-        "pt": "Responder a comandos como no adaptador Telegram: communicate.request ([Nome]texto, também toques em botões) com requestUserId/requestChatId; communicate.response responde só ao remetente ou ao seu chat de grupo. Botões (menus) com keyboard em sendTo() e JSON. Chats de grupo: chatId em sendTo(), -chatId|texto em message.send (antes era enviado a todos os utilizadores) e chats.<chatId>.send. Correção: message.userId é escrito antes de message.received.",
-        "nl": "Opdrachten beantwoorden zoals in de Telegram-adapter: communicate.request ([Naam]tekst, ook knopdrukken) met requestUserId/requestChatId; communicate.response antwoordt alleen de afzender of diens groepschat. Knoppen (menu’s) met keyboard in sendTo() en JSON. Groepschats: chatId in sendTo(), -chatId|tekst in message.send (eerder ging dit naar alle gebruikers) en chats.<chatId>.send. Oplossing: message.userId wordt vóór message.received geschreven.",
-        "fr": "Répondre aux commandes comme dans l’adaptateur Telegram : communicate.request ([Nom]texte, aussi les appuis sur les boutons) avec requestUserId/requestChatId ; communicate.response ne répond qu’à l’expéditeur ou à son groupe. Boutons (menus) avec keyboard dans sendTo() et en JSON. Groupes : chatId dans sendTo(), -chatId|texte dans message.send (auparavant envoyé à tous les utilisateurs) et chats.<chatId>.send. Correction : message.userId est écrit avant message.received.",
-        "it": "Rispondere ai comandi come nell’adattatore Telegram: communicate.request ([Nome]testo, anche pressioni dei pulsanti) con requestUserId/requestChatId; communicate.response risponde solo al mittente o alla sua chat di gruppo. Pulsanti (menu) con keyboard in sendTo() e JSON. Chat di gruppo: chatId in sendTo(), -chatId|testo in message.send (prima veniva inviato a tutti gli utenti) e chats.<chatId>.send. Correzione: message.userId viene scritto prima di message.received.",
-        "es": "Responder a comandos como en el adaptador de Telegram: communicate.request ([Nombre]texto, también pulsaciones de botones) con requestUserId/requestChatId; communicate.response responde solo al remitente o a su chat de grupo. Botones (menús) con keyboard en sendTo() y JSON. Chats de grupo: chatId en sendTo(), -chatId|texto en message.send (antes se enviaba a todos los usuarios) y chats.<chatId>.send. Corrección: message.userId se escribe antes de message.received.",
-        "pl": "Odpowiadanie na polecenia jak w adapterze Telegram: communicate.request ([Nazwa]tekst, także naciśnięcia przycisków) z requestUserId/requestChatId; communicate.response odpowiada tylko nadawcy lub jego czatowi grupowemu. Przyciski (menu) przez keyboard w sendTo() i JSON. Czaty grupowe: chatId w sendTo(), -chatId|tekst w message.send (wcześniej trafiało to do wszystkich użytkowników) i chats.<chatId>.send. Poprawka: message.userId jest zapisywany przed message.received.",
-        "uk": "Відповіді на команди як в адаптері Telegram: communicate.request ([Ім’я]текст, також натискання кнопок) з requestUserId/requestChatId; communicate.response відповідає лише відправникові або його груповому чату. Кнопки (меню) через keyboard у sendTo() та JSON. Групові чати: chatId у sendTo(), -chatId|текст у message.send (раніше це надсилалося всім користувачам) і chats.<chatId>.send. Виправлено: message.userId записується до message.received.",
-        "zh-cn": "像 Telegram 适配器一样回复命令：communicate.request（[名称]文本，也包括按钮点击）以及 requestUserId/requestChatId；communicate.response 只回复发送者或其所在群聊。通过 sendTo() 和 JSON 中的 keyboard 添加按钮（菜单）。群聊：sendTo() 中的 chatId、message.send 中的 -chatId|文本（以前会发送给所有用户）以及 chats.<chatId>.send。修复：message.userId 在 message.received 之前写入。"
       }
     },
     "authors": [

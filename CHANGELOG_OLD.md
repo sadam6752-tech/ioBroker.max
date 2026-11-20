@@ -1,5 +1,10 @@
 # Older Changelog
 
+### 0.1.11 (2026-10-13)
+- (sadam6752-tech) Remove "ioBroker" from `common.keywords` of `io-package.json` (checker W1068); it stays in
+  `package.json`
+- (sadam6752-tech) Update `@iobroker/testing` to 6.3.0 (checker W0037)
+
 ### 0.1.10 (2026-10-13)
 - (sadam6752-tech) Messages without notification: `notify: false` in `sendTo()` and JSON state values;
   `disable_notification: true` of the Telegram adapter is accepted as well
